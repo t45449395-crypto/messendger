@@ -1,0 +1,18 @@
+{
+  "name": "Чаты",
+  "short_name": "Чаты",
+  "description": "Чаты, звонки и профили",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e1621",
+  "theme_color": "#17212b",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

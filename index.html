@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17212b">
   <meta name="description" content="Бесплатные личные сообщения и профили пользователей">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <title>Чаты — сообщения и звонки</title>
   <style>
     :root {
@@ -122,6 +124,28 @@
     }
     .filter:hover { background: #ffffff0d; }
     .filter.active { background: linear-gradient(135deg, #337ebc, #2b5278); color: white; box-shadow: inset 0 1px #ffffff18; }
+    .sidebar-tabs { display: flex; gap: 8px; padding: 4px 16px 10px; }
+    .sidebar-tab { flex: 1; padding: 9px 12px; border: 0; border-radius: 12px; background: transparent; color: #aab7c3; cursor: pointer; }
+    .sidebar-tab:hover { background: #ffffff0d; }
+    .sidebar-tab.active { background: #2b5278; color: white; }
+    .call-history-list[hidden], .chat-list[hidden], .filters[hidden] { display: none; }
+    .call-history-list { flex: 1; overflow: auto; padding: 0 10px 12px; }
+    .call-history-item { display: flex; align-items: center; gap: 9px; margin: 4px 0; padding: 8px; border: 1px solid transparent; border-radius: 12px; background: #ffffff05; }
+    .call-history-item:hover { border-color: #ffffff12; background: #ffffff0a; }
+    .call-history-main { display: flex; flex: 1; align-items: center; gap: 11px; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+    .call-history-copy { flex: 1; min-width: 0; }
+    .call-history-name { display: block; overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .call-history-meta { display: block; margin-top: 3px; color: #91a0ac; font-size: 11px; }
+    .call-history-status { flex: 0 0 auto; color: #96a9b9; font-size: 11px; }
+    .call-history-status.missed, .call-history-status.declined { color: #ef8585; }
+    .call-history-status.answered, .call-history-status.ended { color: #68c99b; }
+    .call-again-button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: #2b5278; color: white; cursor: pointer; }
+    .call-again-button:hover { background: #3771a3; }
+    .notification-settings { display: flex; align-items: center; gap: 12px; margin: 10px 2px 14px; padding: 12px; border: 1px solid #ffffff12; border-radius: 14px; background: #ffffff06; }
+    .notification-copy { flex: 1; min-width: 0; }
+    .notification-title { display: block; font-size: 12px; font-weight: 600; }
+    .notification-status { display: block; margin-top: 3px; color: #91a0ac; font-size: 11px; }
+    .notification-toggle { flex: 0 0 auto; padding: 8px 11px; border: 1px solid #ffffff20; border-radius: 10px; background: #2b5278; color: white; cursor: pointer; }
     .premium-promo {
       display: flex;
       align-items: center;
@@ -460,6 +484,8 @@
     .call-card.has-remote-video .call-avatar { width: 52px; height: 52px; margin: 0 0 8px; font-size: 19px; }
     .call-card.has-remote-video .call-hint { display: none; }
     .call-controls { position: absolute; right: 0; bottom: 28px; left: 0; display: flex; justify-content: center; gap: 14px; }
+    .audio-unlock { position: absolute; z-index: 4; right: 50%; bottom: 92px; transform: translateX(50%); padding: 11px 16px; border: 1px solid #ffffff24; border-radius: 22px; background: #245c86; color: white; cursor: pointer; white-space: nowrap; }
+    .audio-unlock.hidden { display: none; }
     .call-control { display: grid; place-items: center; width: 50px; height: 50px; border: 0; border-radius: 50%; background: #ffffff20; cursor: pointer; }
     .call-control:hover { background: #ffffff36; }
     .call-control.accept { background: #34a873; color: white; }
@@ -554,6 +580,10 @@
           <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
+      <nav class="sidebar-tabs" aria-label="Разделы мессенджера">
+        <button class="sidebar-tab active" id="chatsTabButton" type="button" data-sidebar-view="chats" aria-pressed="true">Чаты</button>
+        <button class="sidebar-tab" id="callsTabButton" type="button" data-sidebar-view="calls" aria-pressed="false">Звонки</button>
+      </nav>
       <nav class="filters" aria-label="Фильтр чатов">
         <button class="filter active" data-filter="all">Все</button>
         <button class="filter" data-filter="unread">Непрочитанные</button>
@@ -561,6 +591,16 @@
         <button class="filter" data-filter="groups">Группы</button>
       </nav>
       <section class="chat-list" id="chatList" aria-label="Чаты"></section>
+      <section class="call-history-list" id="callHistoryList" aria-label="История звонков" hidden>
+        <div class="notification-settings">
+          <span class="notification-copy">
+            <span class="notification-title">Уведомления</span>
+            <span class="notification-status" id="pushStatus" role="status" aria-live="polite">Push-уведомления выключены</span>
+          </span>
+          <button class="notification-toggle" id="pushToggleButton" type="button">Включить</button>
+        </div>
+        <div id="callHistoryItems"></div>
+      </section>
       <button class="premium-promo" id="premiumButton" type="button" aria-haspopup="dialog" aria-controls="premiumModal">
         <span class="premium-icon" aria-hidden="true">✦</span>
         <span class="premium-copy"><span class="premium-title">Чаты Premium</span><span class="premium-caption">Больше возможностей — скоро</span></span>
@@ -691,6 +731,7 @@
       </div>
         <video class="remote-video" id="remoteVideo" autoplay playsinline></video>
         <audio id="remoteAudio" autoplay></audio>
+        <button class="audio-unlock hidden" id="audioUnlockButton" type="button">Включить звук собеседника</button>
         <div class="call-controls">
         <button class="call-control" id="muteButton" aria-label="Выключить микрофон" title="Микрофон">
           <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
@@ -772,8 +813,13 @@
     let searchTimer = null;
     let searchSequence = 0;
     let activeRealtimeCallChannel = null;
+    let activeRealtimeCallHistoryChannel = null;
+    let activeSidebarView = "chats";
     let selectedGroupMembers = new Map();
     let groupCreationMode = false;
+    let callHistoryRows = [];
+    let pushRegistration = null;
+    const seenCallSignalIds = new Set();
     const attachmentUrlCache = new Map();
     const SOUND_PREFERENCE_KEY = "messenger-prototype-sounds-enabled";
     try {
@@ -945,6 +991,255 @@
       renderConversation();
     }
 
+    function setSidebarView(view) {
+      activeSidebarView = view === "calls" ? "calls" : "chats";
+      const showingCalls = activeSidebarView === "calls";
+      document.getElementById("chatsTabButton").classList.toggle("active", !showingCalls);
+      document.getElementById("chatsTabButton").setAttribute("aria-pressed", String(!showingCalls));
+      document.getElementById("callsTabButton").classList.toggle("active", showingCalls);
+      document.getElementById("callsTabButton").setAttribute("aria-pressed", String(showingCalls));
+      document.querySelector(".filters").hidden = showingCalls;
+      chatList.hidden = showingCalls;
+      document.getElementById("callHistoryList").hidden = !showingCalls;
+      if (showingCalls) {
+        loadCallHistory().catch(error => {
+          console.error("Не удалось загрузить историю звонков:", error);
+          document.getElementById("callHistoryItems").textContent = `Не удалось загрузить звонки: ${error.message}`;
+        });
+      }
+    }
+
+    async function loadCallHistory() {
+      const items = document.getElementById("callHistoryItems");
+      if (!currentUser || isDemoMode) {
+        items.innerHTML = `<div class="empty-pill" style="margin:12px 4px;text-align:center">История звонков появится после подключения Supabase.</div>`;
+        return;
+      }
+
+      const { data: rows, error } = await supabaseClient.from("call_history")
+        .select("id,conversation_id,caller_id,recipient_id,call_kind,status,created_at")
+        .or(`caller_id.eq.${currentUser.id},recipient_id.eq.${currentUser.id}`)
+        .order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+
+      callHistoryRows = rows || [];
+      const contactIds = [...new Set(callHistoryRows.map(row =>
+        row.caller_id === currentUser.id ? row.recipient_id : row.caller_id
+      ))];
+      const { data: profiles, error: profilesError } = contactIds.length
+        ? await supabaseClient.from("profiles").select("id,display_name").in("id", contactIds)
+        : { data: [], error: null };
+      if (profilesError) throw profilesError;
+      const names = new Map((profiles || []).map(profile => [profile.id, profile.display_name]));
+      const statusLabels = {
+        ringing: "Нет ответа",
+        answered: "Состоялся",
+        declined: "Отклонён",
+        missed: "Пропущен",
+        ended: "Завершён"
+      };
+      items.innerHTML = callHistoryRows.length ? callHistoryRows.map(row => {
+        const peerId = row.caller_id === currentUser.id ? row.recipient_id : row.caller_id;
+        const name = names.get(peerId) || "Пользователь";
+        const outgoing = row.caller_id === currentUser.id;
+        const time = new Intl.DateTimeFormat("ru", { dateStyle: "medium", timeStyle: "short" })
+          .format(new Date(row.created_at));
+        const callLabel = row.call_kind === "video" ? "Видеозвонок" : "Аудиозвонок";
+        return `<article class="call-history-item">
+          <button class="call-history-main" type="button" data-open-call-chat="${safeText(row.conversation_id)}" aria-label="Открыть чат с ${safeText(name)}">
+            <span class="avatar small" style="--avatar:${palette[name.length % palette.length]}" aria-hidden="true">${safeText(initials(name))}</span>
+            <span class="call-history-copy">
+              <span class="call-history-name">${safeText(name)}</span>
+              <span class="call-history-meta">${outgoing ? "Исходящий" : "Входящий"} · ${safeText(callLabel)} · ${safeText(time)}</span>
+            </span>
+            <span class="call-history-status ${safeText(row.status)}">${safeText(statusLabels[row.status] || "Звонок")}</span>
+          </button>
+          <button class="call-again-button" type="button" data-call-peer="${safeText(peerId)}" data-call-kind="${safeText(row.call_kind)}" aria-label="Позвонить: ${safeText(name)}" title="Позвонить">↗</button>
+        </article>`;
+      }).join("") : `<div class="empty-pill" style="margin:12px 4px;text-align:center">Звонков пока нет</div>`;
+    }
+
+    async function openCallHistoryTarget(peerId, kind) {
+      try {
+        let chat = chats.find(item => item.otherId === peerId && item.type === "personal");
+        if (!chat) {
+          const { error } = await supabaseClient.rpc("get_or_create_direct_conversation", {
+            other_user_id: peerId
+          });
+          if (error) throw error;
+          await loadConversations();
+          chat = chats.find(item => item.otherId === peerId && item.type === "personal");
+        }
+        if (!chat) throw new Error("Не удалось открыть личную переписку.");
+        await selectChat(chat.id);
+        if (kind) await startCall(kind, chat);
+      } catch (error) {
+        console.error("Не удалось открыть звонок из истории:", error);
+        showToast(`Не удалось начать звонок: ${error.message}`);
+      }
+    }
+
+    function subscribeToCallHistory() {
+      if (!supabaseClient || !currentUser || activeRealtimeCallHistoryChannel) return;
+      activeRealtimeCallHistoryChannel = supabaseClient.channel(`user-call-history-${currentUser.id}`)
+        .on("postgres_changes", {
+          event: "*", schema: "public", table: "call_history"
+        }, () => {
+          if (activeSidebarView === "calls") {
+            loadCallHistory().catch(error => {
+              console.error("Не удалось обновить историю звонков:", error);
+              showToast("Не удалось обновить историю звонков.");
+            });
+          }
+        })
+        .subscribe(status => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.error("Не удалось подключиться к обновлениям истории звонков:", status);
+          }
+        });
+    }
+
+    function setPushStatus(message) {
+      const status = document.getElementById("pushStatus");
+      if (status) status.textContent = message;
+    }
+
+    function decodeVapidPublicKey(value) {
+      const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+      return Uint8Array.from(atob(padded), character => character.charCodeAt(0));
+    }
+
+    async function initializePushStatus() {
+      const button = document.getElementById("pushToggleButton");
+      if (isDemoMode || !currentUser) {
+        setPushStatus("Для push требуется войти с Supabase.");
+        button.disabled = true;
+        return;
+      }
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+        setPushStatus("Этот браузер не поддерживает push-уведомления.");
+        button.disabled = true;
+        return;
+      }
+      if (!appConfig.pushVapidPublicKey) {
+        setPushStatus("Сначала настройте ключ VAPID и функцию отправки.");
+        button.disabled = false;
+        return;
+      }
+
+      button.disabled = false;
+      pushRegistration = await navigator.serviceWorker.getRegistration();
+      const subscription = await pushRegistration?.pushManager.getSubscription();
+      button.textContent = subscription ? "Выключить" : "Включить";
+      button.setAttribute("aria-pressed", String(Boolean(subscription)));
+      setPushStatus(subscription
+        ? "Уведомления включены в этом браузере."
+        : Notification.permission === "denied"
+          ? "Разрешение запрещено в настройках браузера."
+          : "Получайте сообщения и звонки, даже когда сайт закрыт.");
+    }
+
+    async function togglePushNotifications() {
+      const button = document.getElementById("pushToggleButton");
+      button.disabled = true;
+      try {
+        if (!appConfig.pushVapidPublicKey) {
+          setPushStatus("Создайте VAPID-ключи и добавьте публичный ключ в config.js.");
+          showToast("Сначала настройте VAPID и разверните функцию push-уведомлений.");
+          return;
+        }
+        if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+          throw new Error("Браузер не поддерживает push-уведомления.");
+        }
+        pushRegistration = await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+        await navigator.serviceWorker.ready;
+        const existing = await pushRegistration.pushManager.getSubscription();
+        if (existing) {
+          const { error } = await supabaseClient.from("push_subscriptions")
+            .delete().eq("endpoint", existing.endpoint).eq("user_id", currentUser.id);
+          if (error) throw error;
+          if (!await existing.unsubscribe()) throw new Error("Браузер не удалил push-подписку.");
+          button.textContent = "Включить";
+          button.setAttribute("aria-pressed", "false");
+          setPushStatus("Push-уведомления выключены.");
+          return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          setPushStatus(permission === "denied"
+            ? "Разрешение запрещено в настройках браузера."
+            : "Разрешите уведомления в запросе браузера.");
+          return;
+        }
+        const subscription = await pushRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: decodeVapidPublicKey(appConfig.pushVapidPublicKey)
+        });
+        const json = subscription.toJSON();
+        if (!subscription.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+          await subscription.unsubscribe();
+          throw new Error("Браузер вернул неполную push-подписку.");
+        }
+        const { error } = await supabaseClient.from("push_subscriptions").upsert({
+          user_id: currentUser.id,
+          endpoint: subscription.endpoint,
+          p256dh: json.keys.p256dh,
+          auth: json.keys.auth
+        }, { onConflict: "endpoint" });
+        if (error) {
+          await subscription.unsubscribe();
+          throw error;
+        }
+        button.textContent = "Выключить";
+        button.setAttribute("aria-pressed", "true");
+        setPushStatus("Уведомления включены в этом браузере.");
+      } catch (error) {
+        console.error("Не удалось настроить push-уведомления:", error);
+        setPushStatus(`Не удалось включить: ${error.message}`);
+        showToast(`Push-уведомления: ${error.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function dispatchPush(action, id) {
+      if (!supabaseClient || !id) return;
+      const { error } = await supabaseClient.functions.invoke("send-push", {
+        body: { action, id }
+      });
+      if (error) {
+        console.error("Не удалось отправить push-уведомление:", error);
+        setPushStatus("Функция отправки не настроена или недоступна.");
+      }
+    }
+
+    async function restorePendingIncomingCall(callId) {
+      if (!currentUser || activeCall) return;
+      let query = supabaseClient.from("call_signals")
+        .select("id,call_id,sender_id,recipient_id,kind,payload,created_at")
+        .eq("recipient_id", currentUser.id)
+        .eq("kind", "offer")
+        .gte("created_at", new Date(Date.now() - 60000).toISOString());
+      if (callId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(callId)) {
+        query = query.eq("call_id", callId);
+      }
+      const { data, error } = await query.order("created_at", { ascending: false }).limit(5);
+      if (error) throw error;
+      const offers = data || [];
+      if (!offers.length) return;
+      const { data: activeCalls, error: historyError } = await supabaseClient.from("call_history")
+        .select("call_id").in("call_id", offers.map(signal => signal.call_id)).eq("status", "ringing");
+      if (historyError) throw historyError;
+      const activeCallIds = new Set((activeCalls || []).map(call => call.call_id));
+      for (const signal of offers.reverse()) {
+        if (!activeCallIds.has(signal.call_id)) continue;
+        if (activeCall) break;
+        await handleCallSignal(signal);
+      }
+    }
+
     async function handleSignedIn(user) {
       currentUser = user;
       try {
@@ -953,8 +1248,19 @@
         document.getElementById("sidebarProfileName").textContent = profileName();
         document.getElementById("accountBadge").textContent = "Аккаунт";
         await loadConversations();
+        const requestedConversation = new URLSearchParams(location.search).get("conversation");
+        if (requestedConversation && chats.some(chat => chat.id === requestedConversation)) {
+          await selectChat(requestedConversation);
+        }
         subscribeToMessages();
-        subscribeToCallSignals().catch(error => {
+        initializePushStatus().catch(error => {
+          console.error("Не удалось проверить push-уведомления:", error);
+          setPushStatus("Не удалось проверить настройки уведомлений.");
+        });
+        subscribeToCallHistory();
+        subscribeToCallSignals().then(() => restorePendingIncomingCall(
+          new URLSearchParams(location.search).get("incomingCall")
+        )).catch(error => {
           console.error("Не удалось подключить звонки:", error);
           showToast(error.message);
         });
@@ -1368,6 +1674,9 @@
           .single();
         if (error) throw error;
         addRemoteMessage(data);
+        dispatchPush("message", data.id).catch(pushError => {
+          console.error("Не удалось отправить уведомление о сообщении:", pushError);
+        });
         playSound("sent");
         return;
       }
@@ -1452,6 +1761,9 @@
           throw error;
         }
         addRemoteMessage(data);
+        dispatchPush("message", data.id).catch(pushError => {
+          console.error("Не удалось отправить уведомление о файле:", pushError);
+        });
         playSound("sent");
         showToast("Файл отправлен.");
       } catch (error) {
@@ -1536,6 +1848,22 @@
       activeFilter = button.dataset.filter;
       renderChats();
     }));
+
+    document.querySelectorAll("[data-sidebar-view]").forEach(button => {
+      button.addEventListener("click", () => setSidebarView(button.dataset.sidebarView));
+    });
+
+    document.getElementById("pushToggleButton").addEventListener("click", togglePushNotifications);
+
+    document.getElementById("callHistoryItems").addEventListener("click", event => {
+      const callButton = event.target.closest("[data-call-peer]");
+      if (callButton) {
+        openCallHistoryTarget(callButton.dataset.callPeer, callButton.dataset.callKind);
+        return;
+      }
+      const chatButton = event.target.closest("[data-open-call-chat]");
+      if (chatButton) selectChat(chatButton.dataset.openCallChat);
+    });
 
     document.getElementById("newChatButton").addEventListener("click", () => {
       const modal = document.getElementById("newChatModal");
@@ -1833,6 +2161,9 @@
       remoteVideo.classList.remove("active");
       remoteVideo.srcObject = null;
       remoteAudio.srcObject = null;
+      remoteAudio.muted = false;
+      remoteVideo.muted = true;
+      document.getElementById("audioUnlockButton").classList.add("hidden");
       document.getElementById("muteButton").classList.remove("active");
       document.getElementById("cameraButton").classList.remove("active");
       callModal.classList.add("open");
@@ -1885,14 +2216,17 @@
     async function sendCallSignal(kind, payload = {}) {
       const call = activeCall;
       if (!call || !currentUser) throw new Error("Звонок уже завершён.");
-      const { error } = await supabaseClient.from("call_signals").insert({
+      const { data, error } = await supabaseClient.from("call_signals").insert({
         call_id: call.id,
         sender_id: currentUser.id,
         recipient_id: call.peerId,
         kind,
         payload
-      });
+      }).select("id").single();
       if (error) throw error;
+      if (kind === "offer") dispatchPush("call", data.id).catch(pushError => {
+        console.error("Не удалось отправить уведомление о звонке:", pushError);
+      });
     }
 
     async function addPendingIceCandidate(callId, candidate) {
@@ -1917,6 +2251,9 @@
 
     async function handleCallSignal(signal) {
       if (!signal || signal.recipient_id !== currentUser?.id) return;
+      if (signal.id && seenCallSignalIds.has(signal.id)) return;
+      if (signal.id && seenCallSignalIds.size >= 200) seenCallSignalIds.clear();
+      if (signal.id) seenCallSignalIds.add(signal.id);
       if (signal.kind === "ice") {
         if (!signal.payload || typeof signal.payload.candidate !== "string" ||
             signal.payload.candidate.length > 8000) return;
@@ -2037,14 +2374,43 @@
         }
       };
       connection.ontrack = event => {
-        const stream = event.streams[0] || new MediaStream([event.track]);
-        if (call.kind === "video") {
-          remoteVideo.srcObject = stream;
+        if (event.track.kind === "audio") {
+          const audioStream = remoteAudio.srcObject instanceof MediaStream
+            ? remoteAudio.srcObject
+            : new MediaStream();
+          if (!audioStream.getTracks().some(track => track.id === event.track.id)) {
+            audioStream.addTrack(event.track);
+          }
+          remoteAudio.srcObject = audioStream;
+          remoteAudio.muted = false;
+          const playRemoteAudio = () => {
+            remoteAudio.play().then(() => {
+              document.getElementById("audioUnlockButton").classList.add("hidden");
+            }).catch(error => {
+              console.warn("Автовоспроизведение звука звонка заблокировано браузером:", error);
+              document.getElementById("audioUnlockButton").classList.remove("hidden");
+              setCallStatus("Нажмите «Включить звук собеседника», если его не слышно.");
+            });
+          };
+          event.track.onunmute = playRemoteAudio;
+          if (event.track.readyState === "live" && !event.track.muted) playRemoteAudio();
+        } else if (event.track.kind === "video") {
+          const videoStream = remoteVideo.srcObject instanceof MediaStream
+            ? remoteVideo.srcObject
+            : new MediaStream();
+          if (!videoStream.getTracks().some(track => track.id === event.track.id)) {
+            videoStream.addTrack(event.track);
+          }
+          remoteVideo.srcObject = videoStream;
+          remoteVideo.muted = true;
           remoteVideo.classList.add("active");
           document.querySelector(".call-card").classList.add("has-remote-video");
-        } else {
-          remoteAudio.srcObject = stream;
-          remoteAudio.play().catch(error => console.warn("Воспроизведение звука ждёт действия пользователя:", error));
+        }
+      };
+      connection.oniceconnectionstatechange = () => {
+        if (activeCall?.id !== call.id) return;
+        if (connection.iceConnectionState === "failed") {
+          setCallStatus("Не удалось установить связь. Для этой сети может понадобиться TURN-сервер.");
         }
       };
       connection.onconnectionstatechange = () => {
@@ -2072,8 +2438,8 @@
       return connection;
     }
 
-    async function startCall(kind) {
-      const chat = activeChat();
+    async function startCall(kind, selectedChat = activeChat()) {
+      const chat = selectedChat;
       if (!chat) return;
       if (isDemoMode || !chat.otherId) {
         showToast("Для реальных звонков подключите Supabase и настройте TURN для ограниченных сетей.");
@@ -2216,6 +2582,8 @@
       remoteVideo.srcObject = null;
       remoteVideo.classList.remove("active");
       remoteAudio.srcObject = null;
+      remoteAudio.muted = false;
+      document.getElementById("audioUnlockButton").classList.add("hidden");
       localVideo.srcObject = null;
       document.querySelector(".call-card").classList.remove("has-remote-video");
       document.getElementById("acceptCallButton").classList.add("hidden");
@@ -2229,6 +2597,16 @@
     document.getElementById("audioCallButton").addEventListener("click", () => startCall("audio"));
     document.getElementById("videoCallButton").addEventListener("click", () => startCall("video"));
     document.getElementById("acceptCallButton").addEventListener("click", acceptIncomingCall);
+    document.getElementById("audioUnlockButton").addEventListener("click", async () => {
+      try {
+        remoteAudio.muted = false;
+        await remoteAudio.play();
+        document.getElementById("audioUnlockButton").classList.add("hidden");
+      } catch (error) {
+        console.error("Не удалось включить звук собеседника:", error);
+        showToast(`Не удалось включить звук: ${error.message}`);
+      }
+    });
     document.getElementById("endCallButton").addEventListener("click", () => {
       finishCall(true, Boolean(activeCall?.incoming && !activeCall?.accepted));
     });

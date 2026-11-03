@@ -116,6 +116,29 @@ create table if not exists public.call_signals (
   )
 );
 
+create table if not exists public.call_history (
+  id uuid primary key default gen_random_uuid(),
+  call_id uuid not null unique,
+  conversation_id uuid not null references public.conversations (id) on delete cascade,
+  caller_id uuid not null references public.profiles (id) on delete cascade,
+  recipient_id uuid not null references public.profiles (id) on delete cascade,
+  call_kind text not null check (call_kind in ('audio', 'video')),
+  status text not null default 'ringing'
+    check (status in ('ringing', 'answered', 'declined', 'missed', 'ended')),
+  created_at timestamptz not null default now(),
+  ended_at timestamptz,
+  constraint call_history_different_users check (caller_id <> recipient_id)
+);
+
+create table if not exists public.push_subscriptions (
+  endpoint text primary key check (endpoint ~ '^https://'),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  p256dh text not null check (char_length(p256dh) between 40 and 200),
+  auth text not null check (char_length(auth) between 16 and 100),
+  updated_at timestamptz not null default now(),
+  constraint push_subscriptions_endpoint_length check (char_length(endpoint) between 1 and 2048)
+);
+
 create table if not exists public.gift_catalog (
   gift_key text primary key,
   name text not null,
@@ -201,6 +224,12 @@ create index if not exists call_signals_created_idx
   on public.call_signals (created_at);
 create index if not exists call_signals_call_id_idx
   on public.call_signals (call_id);
+create index if not exists call_history_caller_created_idx
+  on public.call_history (caller_id, created_at desc);
+create index if not exists call_history_recipient_created_idx
+  on public.call_history (recipient_id, created_at desc);
+create index if not exists push_subscriptions_user_idx
+  on public.push_subscriptions (user_id);
 create index if not exists user_gifts_owner_created_idx
   on public.user_gifts (owner_id, created_at desc);
 create index if not exists user_gifts_sender_created_idx
@@ -278,6 +307,67 @@ begin
 end;
 $$;
 
+create or replace function public.record_call_history_from_signal()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.kind = 'offer' then
+    insert into public.call_history (
+      call_id, conversation_id, caller_id, recipient_id, call_kind, created_at
+    )
+    select
+      new.call_id, c.id, new.sender_id, new.recipient_id, new.payload ->> 'callKind', new.created_at
+    from public.conversations c
+    join public.conversation_members caller
+      on caller.conversation_id = c.id and caller.user_id = new.sender_id
+    join public.conversation_members callee
+      on callee.conversation_id = c.id and callee.user_id = new.recipient_id
+    where c.kind = 'personal'
+    on conflict (call_id) do nothing;
+
+    if not exists (
+      select 1
+      from public.call_history
+      where call_id = new.call_id
+        and caller_id = new.sender_id
+        and recipient_id = new.recipient_id
+    ) then
+      raise exception 'Call participants are not members of a personal conversation';
+    end if;
+  elsif new.kind = 'answer' then
+    update public.call_history
+    set status = 'answered'
+    where call_id = new.call_id
+      and caller_id = new.recipient_id
+      and recipient_id = new.sender_id
+      and status = 'ringing';
+  elsif new.kind in ('decline', 'end') then
+    update public.call_history
+    set status = case
+          when new.kind = 'decline' then 'declined'
+          when status = 'ringing' then 'missed'
+          else 'ended'
+        end,
+        ended_at = coalesce(ended_at, new.created_at)
+    where call_id = new.call_id
+      and (
+        (caller_id = new.sender_id and recipient_id = new.recipient_id)
+        or (caller_id = new.recipient_id and recipient_id = new.sender_id)
+      )
+      and ended_at is null;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists call_signals_record_history on public.call_signals;
+create trigger call_signals_record_history
+  after insert on public.call_signals
+  for each row execute function public.record_call_history_from_signal();
+
 create or replace function public.is_conversation_member(
   p_conversation_id uuid,
   p_user_id uuid
@@ -310,6 +400,8 @@ alter table public.user_gifts enable row level security;
 alter table public.user_subscriptions enable row level security;
 alter table public.conversation_members enable row level security;
 alter table public.call_signals enable row level security;
+alter table public.call_history enable row level security;
+alter table public.push_subscriptions enable row level security;
 
 drop policy if exists "Profiles are visible to signed-in users" on public.profiles;
 create policy "Profiles are visible to signed-in users"
@@ -386,6 +478,32 @@ create policy "Direct conversation members can send call signals"
       where c.kind = 'personal'
     )
   );
+
+drop policy if exists "Users can read their own call history" on public.call_history;
+create policy "Users can read their own call history"
+  on public.call_history for select to authenticated
+  using ((select auth.uid()) in (caller_id, recipient_id));
+
+drop policy if exists "Users can read their own push subscriptions" on public.push_subscriptions;
+create policy "Users can read their own push subscriptions"
+  on public.push_subscriptions for select to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can create their own push subscriptions" on public.push_subscriptions;
+create policy "Users can create their own push subscriptions"
+  on public.push_subscriptions for insert to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can update their own push subscriptions" on public.push_subscriptions;
+create policy "Users can update their own push subscriptions"
+  on public.push_subscriptions for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can remove their own push subscriptions" on public.push_subscriptions;
+create policy "Users can remove their own push subscriptions"
+  on public.push_subscriptions for delete to authenticated
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Signed-in users can view the gift catalog" on public.gift_catalog;
 create policy "Signed-in users can view the gift catalog"
@@ -587,6 +705,8 @@ grant select on public.conversations to authenticated;
 grant select on public.conversation_members to authenticated;
 grant select, insert on public.messages to authenticated;
 grant select, insert on public.call_signals to authenticated;
+grant select on public.call_history to authenticated;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
 grant select on public.gift_catalog to authenticated;
 grant select on public.user_gifts to authenticated;
 grant update (is_pinned) on public.user_gifts to authenticated;
@@ -679,6 +799,21 @@ begin
   exception
     when undefined_object then
       raise notice 'Create the supabase_realtime publication before enabling call signaling.';
+  end;
+  begin
+    if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+       and not exists (
+         select 1
+         from pg_publication_tables
+         where pubname = 'supabase_realtime'
+           and schemaname = 'public'
+           and tablename = 'call_history'
+       ) then
+      alter publication supabase_realtime add table public.call_history;
+    end if;
+  exception
+    when undefined_object then
+      raise notice 'Create the supabase_realtime publication before enabling call history updates.';
   end;
 end;
 $$;
