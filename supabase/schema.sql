@@ -5,6 +5,9 @@ create table if not exists public.profiles (
   username text unique,
   display_name text not null default 'Пользователь',
   about text not null default '',
+  status text not null default 'На связи',
+  avatar_color text not null default '#7784ed',
+  avatar_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint profiles_username_format check (
@@ -13,7 +16,31 @@ create table if not exists public.profiles (
   constraint profiles_display_name_length check (
     char_length(display_name) between 1 and 60
   ),
-  constraint profiles_about_length check (char_length(about) <= 160)
+  constraint profiles_about_length check (char_length(about) <= 160),
+  constraint profiles_status_length check (char_length(status) <= 60),
+  constraint profiles_avatar_color_format check (avatar_color ~ '^#[0-9a-fA-F]{6}$'),
+  constraint profiles_avatar_url_format check (
+    avatar_url is null or (
+      avatar_url ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[.](jpg|jpeg|png|webp)$'
+      and split_part(avatar_url, '/', 1) = id::text
+    )
+  )
+);
+
+alter table public.profiles add column if not exists status text not null default 'На связи';
+alter table public.profiles add column if not exists avatar_color text not null default '#7784ed';
+alter table public.profiles add column if not exists avatar_url text;
+alter table public.profiles drop constraint if exists profiles_status_length;
+alter table public.profiles add constraint profiles_status_length check (char_length(status) <= 60);
+alter table public.profiles drop constraint if exists profiles_avatar_color_format;
+alter table public.profiles add constraint profiles_avatar_color_format
+  check (avatar_color ~ '^#[0-9a-fA-F]{6}$');
+alter table public.profiles drop constraint if exists profiles_avatar_url_format;
+alter table public.profiles add constraint profiles_avatar_url_format check (
+  avatar_url is null or (
+    avatar_url ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[.](jpg|jpeg|png|webp)$'
+    and split_part(avatar_url, '/', 1) = id::text
+  )
 );
 
 create table if not exists public.conversations (
@@ -152,12 +179,14 @@ insert into public.gift_catalog (gift_key, name, emoji, rarity, description, sor
 values
   ('star', 'Звёздный вечер', '🌟', 'Особенный', 'Пусть сегодня всё складывается особенно красиво.', 1),
   ('bouquet', 'Тёплый букет', '💐', 'Нежный', 'Просто чтобы напомнить: вы прекрасны.', 2),
-  ('cat', 'Мур-мур', '🐱', 'Милый', 'Немного пушистого настроения на весь день.', 3),
-  ('cup', 'Кофейная пауза', '☕', 'Уютный', 'Пусть найдётся время на глоток тепла.', 4),
-  ('planet', 'Моя планета', '🪐', 'Космический', 'Ты — целый удивительный мир.', 5),
-  ('crown', 'Корона дня', '👑', 'Редкий', 'Сегодня главный герой — ты.', 6),
-  ('heart', 'С теплом', '💌', 'От души', 'Маленькая открытка с большими чувствами.', 7),
-  ('sparkle', 'Искра вдохновения', '✨', 'Вдохновение', 'Пусть новая идея найдётся именно сегодня.', 8)
+  ('cake', 'Праздничный торт', '🎂', 'Праздничный', 'Пусть повод для радости найдётся в любой день.', 3),
+  ('cat', 'Мур-мур', '🐱', 'Милый', 'Немного пушистого настроения на весь день.', 4),
+  ('cup', 'Кофейная пауза', '☕', 'Уютный', 'Пусть найдётся время на глоток тепла.', 5),
+  ('planet', 'Моя планета', '🪐', 'Космический', 'Ты — целый удивительный мир.', 6),
+  ('crown', 'Корона дня', '👑', 'Редкий', 'Сегодня главный герой — ты.', 7),
+  ('heart', 'С теплом', '💌', 'От души', 'Маленькая открытка с большими чувствами.', 8),
+  ('bear', 'Плюшевый мишка', '🧸', 'Тёплый', 'Обнимательное напоминание, что о вас помнят.', 9),
+  ('sparkle', 'Искра вдохновения', '✨', 'Вдохновение', 'Пусть новая идея найдётся именно сегодня.', 10)
 on conflict (gift_key) do update
   set name = excluded.name,
       emoji = excluded.emoji,
@@ -207,6 +236,19 @@ values (
 )
 on conflict (id) do update
 set public = false,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'profile-avatars',
+  'profile-avatars',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update
+set public = true,
     file_size_limit = excluded.file_size_limit,
     allowed_mime_types = excluded.allowed_mime_types;
 
@@ -752,6 +794,22 @@ create policy "Users can remove their own attachments"
       where cm.conversation_id::text = (storage.foldername(name))[1]
         and cm.user_id = (select auth.uid())
     )
+  );
+
+drop policy if exists "Users can upload their own profile avatars" on storage.objects;
+create policy "Users can upload their own profile avatars"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'profile-avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+drop policy if exists "Users can remove their own profile avatars" on storage.objects;
+create policy "Users can remove their own profile avatars"
+  on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'profile-avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
 do $$

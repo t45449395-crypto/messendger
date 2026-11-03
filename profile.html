@@ -48,6 +48,18 @@
         </button>
       </div>
       <div class="dialog-body">
+        <div class="profile-edit-preview">
+          <div class="profile-edit-avatar" id="editAvatarPreview">Г</div>
+          <div><strong>Ваш профиль</strong><span>Так вас увидят собеседники</span></div>
+        </div>
+        <div class="field avatar-upload-field">
+          <label class="field-label" for="avatarFileInput">Фотография профиля</label>
+          <input class="field-input avatar-file-input" id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/webp">
+          <div class="avatar-upload-actions">
+            <span class="field-help">JPG, PNG или WebP · до 5 МБ</span>
+            <button class="text-button" id="removeAvatarButton" type="button">Убрать фото</button>
+          </div>
+        </div>
         <div class="field">
           <label class="field-label" for="editName">Как вас называть</label>
           <input class="field-input" id="editName" maxlength="60" required autocomplete="name">
@@ -58,10 +70,20 @@
           <div class="field-help">3–24 символа: латинские буквы, цифры и подчёркивание.</div>
         </div>
         <div class="field">
-          <label class="field-label" for="editAbout">О себе</label>
-          <textarea class="field-textarea" id="editAbout" maxlength="160" placeholder="Пара слов о том, что вам нравится"></textarea>
+          <label class="field-label" for="editProfileStatus">Статус</label>
+          <input class="field-input" id="editProfileStatus" maxlength="60" placeholder="Например, на связи ✨">
+          <div class="field-help"><span id="statusCount">0</span>/60 · короткая подпись в профиле</div>
         </div>
-        <div class="status" id="editStatus" role="status" aria-live="polite"></div>
+        <fieldset class="field avatar-color-field">
+          <legend class="field-label">Цвет аватара</legend>
+          <div class="avatar-color-options" id="avatarColorOptions" aria-label="Выберите цвет аватара"></div>
+        </fieldset>
+        <div class="field">
+          <label class="field-label" for="editAbout">О себе</label>
+          <textarea class="field-textarea" id="editAbout" maxlength="160" placeholder="Расскажите о себе, интересах или о том, что вам нравится"></textarea>
+          <div class="field-help"><span id="aboutCount">0</span>/160</div>
+        </div>
+        <div class="status" id="editStatusError" role="status" aria-live="polite"></div>
         <div class="dialog-actions">
           <button class="button-secondary" type="button" data-close="editModal">Отмена</button>
           <button class="button" id="saveProfileButton" type="submit">Сохранить</button>
@@ -115,12 +137,14 @@
   <script>
     const GIFTS = [
       { key: "star", name: "Звёздный вечер", emoji: "🌟", rarity: "Особенный", glow: "#d8aa4f38", accent: "#f4d089", description: "Пусть сегодня всё складывается особенно красиво." },
-      { key: "bouquet", name: "Тёплый букет", emoji: "💐", rarity: "Нежный", glow: "#cf668a36", accent: "#f69eba", description: "Просто чтобы напомнить: вы прекрасны." },
+      { key: "bouquet", name: "Тёплый букет", emoji: "💐", image: "./0e266525-35a5-4c15-942e-0ace4110c19f.jpg", rarity: "Нежный", glow: "#cf668a36", accent: "#f69eba", description: "Просто чтобы напомнить: вы прекрасны." },
+      { key: "cake", name: "Праздничный торт", emoji: "🎂", image: "./9f3ebf7b-d7c6-47f0-899b-10cd2155bb08.jpg", rarity: "Праздничный", glow: "#e8799f36", accent: "#f59db6", description: "Пусть повод для радости найдётся в любой день." },
       { key: "cat", name: "Мур-мур", emoji: "🐱", rarity: "Милый", glow: "#a978e33d", accent: "#c5a2ff", description: "Немного пушистого настроения на весь день." },
-      { key: "cup", name: "Кофейная пауза", emoji: "☕", rarity: "Уютный", glow: "#d58e5439", accent: "#f2ba7c", description: "Пусть найдётся время на глоток тепла." },
+      { key: "cup", name: "Кофейная пауза", emoji: "☕", image: "./d18ac6c9-2d95-415b-bc78-0c2b378fdefe.jpg", rarity: "Уютный", glow: "#d58e5439", accent: "#f2ba7c", description: "Пусть найдётся время на глоток тепла." },
       { key: "planet", name: "Моя планета", emoji: "🪐", rarity: "Космический", glow: "#647de747", accent: "#aabaff", description: "Ты — целый удивительный мир." },
       { key: "crown", name: "Корона дня", emoji: "👑", rarity: "Редкий", glow: "#e5bf5b40", accent: "#ffe28a", description: "Сегодня главный герой — ты." },
-      { key: "heart", name: "С теплом", emoji: "💌", rarity: "От души", glow: "#ed6c7940", accent: "#ffadb5", description: "Маленькая открытка с большими чувствами." },
+      { key: "heart", name: "С теплом", emoji: "💌", image: "./d6147ab6-c047-494a-940b-7bf52f6f06ee.jpg", rarity: "От души", glow: "#ed6c7940", accent: "#ffadb5", description: "Маленькая открытка с большими чувствами." },
+      { key: "bear", name: "Плюшевый мишка", emoji: "🧸", image: "./d6770b98-efa5-4563-bf1a-af55a54bce43.jpg", rarity: "Тёплый", glow: "#d18b5140", accent: "#eab17a", description: "Обнимательное напоминание, что о вас помнят." },
       { key: "sparkle", name: "Искра вдохновения", emoji: "✨", rarity: "Вдохновение", glow: "#80c9f13a", accent: "#9ce5ff", description: "Пусть новая идея найдётся именно сегодня." }
     ];
     const DEMO_CONTACTS = [
@@ -131,6 +155,8 @@
     ];
     const PROFILE_KEY = "messenger-prototype-profile";
     const GIFTS_KEY = "messenger-prototype-gifts";
+    const AVATAR_COLORS = ["#7784ed", "#4d9bce", "#36a889", "#d18b51", "#c56b83", "#9868c9", "#527da3"];
+    const profileDateFormatter = new Intl.DateTimeFormat("ru", { day: "numeric", month: "short", year: "numeric" });
     const config = window.APP_CONFIG || {};
     const demoMode = !(config.supabaseUrl && config.supabasePublishableKey);
     let supabaseClient = null;
@@ -147,11 +173,21 @@
     let searchTimer;
     let searchToken = 0;
     let giftsLoadToken = 0;
+    let selectedAvatarColor = AVATAR_COLORS[0];
+    let selectedAvatarFile = null;
+    let removeAvatar = false;
+    let avatarPreviewObjectUrl = null;
 
     const safeText = value => String(value ?? "").replace(/[&<>"']/g, char => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     })[char]);
     const giftByKey = key => GIFTS.find(gift => gift.key === key);
+    const giftArt = gift => gift.image
+      ? `<img src="${safeText(gift.image)}" alt="" loading="lazy">`
+      : safeText(gift.emoji);
+    const avatarUrl = path => path && supabaseClient
+      ? supabaseClient.storage.from("profile-avatars").getPublicUrl(path).data.publicUrl
+      : "";
     const initials = name => String(name || "Г").trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
     const profileName = () => profile?.display_name || "Алексей";
     const guestUsername = id => `guest_${String(id).replace(/-/g, "").slice(0, 12)}`;
@@ -163,7 +199,7 @@
       if (days === 0) return "Сегодня";
       if (days === 1) return "Вчера";
       if (days < 7) return `${days} дн. назад`;
-      return new Intl.DateTimeFormat("ru", { day: "numeric", month: "short", year: "numeric" }).format(date);
+      return profileDateFormatter.format(date);
     };
 
     function showToast(message) {
@@ -205,19 +241,23 @@
       const firstGiftDate = gifts.map(gift => gift.created_at).filter(Boolean).sort()[0];
       const displayName = profileName();
       const username = profile?.username || (currentUser ? guestUsername(currentUser.id) : "alex_neo");
-      const about = profile?.about || "Люблю красивые идеи, тёплые разговоры и маленькие радости каждый день. ✨";
-      const birthday = profile?.birthday || "Начал общаться в 2024";
+      const about = profile?.about || "Пока ничего не указано.";
+      const status = profile?.status || "На связи";
       const accountLabel = demoMode ? "Демо-профиль" : currentUser?.is_anonymous ? "Гостевой аккаунт" : "Участник";
-      const avatarColor = profile?.avatar_color || "linear-gradient(145deg, #8bd1f4, #7784ed 52%, #b776d8)";
+      const avatarColor = AVATAR_COLORS.includes(profile?.avatar_color) ? profile.avatar_color : AVATAR_COLORS[0];
+      const avatarImageUrl = avatarUrl(profile?.avatar_url);
+      const registrationDate = profile?.created_at && !Number.isNaN(new Date(profile.created_at).getTime())
+        ? profileDateFormatter.format(new Date(profile.created_at))
+        : "Дата не указана";
       document.title = `${displayName} — профиль`;
 
       document.getElementById("profileContent").innerHTML = `
         <section class="profile-hero" aria-label="Обложка профиля">
           <div class="hero-pattern" aria-hidden="true"></div><div class="hero-glow" aria-hidden="true"></div>
           <div class="hero-content">
-            <div class="avatar-wrap"><div class="profile-avatar" id="mainAvatar" style="background:${safeText(avatarColor)}">${safeText(initials(displayName))}</div><span class="online-dot" title="Профиль активен"></span></div>
+            <div class="avatar-wrap"><div class="profile-avatar" id="mainAvatar" style="background:${safeText(avatarColor)}">${avatarImageUrl ? `<img src="${safeText(avatarImageUrl)}" alt="Аватар ${safeText(displayName)}">` : safeText(initials(displayName))}</div><span class="online-dot" title="Профиль"></span></div>
             <div class="hero-copy">
-              <div class="profile-kicker">${safeText(accountLabel)} <span class="verified" aria-label="Аккаунт создан">✓</span></div>
+              <div class="profile-kicker">${safeText(accountLabel)} <span class="verified" aria-label="Профиль открыт">✓</span></div>
               <h1 class="profile-title">${safeText(displayName)}</h1>
               <div class="profile-username">@${safeText(username)}</div>
               <p class="profile-about">${safeText(about)}</p>
@@ -238,10 +278,10 @@
             <div class="section-heading"><h2>О себе</h2><span class="eyebrow">ПРОФИЛЬ</span></div>
             <p class="bio-text">${safeText(about)}</p>
             <div class="detail-list">
-              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span><span class="detail-copy"><span class="detail-label">Дата регистрации</span><span class="detail-value">${safeText(birthday)}</span></span></div>
-              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-7.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h8M8 14h5"/></svg></span><span class="detail-copy"><span class="detail-label">Статус</span><span class="detail-value">На связи · живу в моменте</span></span></div>
-              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-7-11a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 6.6-7 11-7 11Z"/></svg></span><span class="detail-copy"><span class="detail-label">Любимое настроение</span><span class="detail-value">Доброта и любопытство</span></span></div>
-              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="8"/></svg></span><span class="detail-copy"><span class="detail-label">Уровень энергии</span><span class="detail-value">Почти всегда заряжен ⚡</span></span></div>
+              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span><span class="detail-copy"><span class="detail-label">Дата регистрации</span><span class="detail-value">${safeText(registrationDate)}</span></span></div>
+              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-7.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h8M8 14h5"/></svg></span><span class="detail-copy"><span class="detail-label">Статус</span><span class="detail-value">${safeText(status)}</span></span></div>
+              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></span><span class="detail-copy"><span class="detail-label">Имя пользователя</span><span class="detail-value">@${safeText(username)}</span></span></div>
+              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-7-11a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 6.6-7 11-7 11Z"/></svg></span><span class="detail-copy"><span class="detail-label">О себе</span><span class="detail-value">${safeText(profile?.about ? "Заполнено" : "Пока пусто")}</span></span></div>
             </div>
           </article>
           <aside class="panel stats-panel" aria-label="Статистика профиля">
@@ -299,7 +339,7 @@
           const fromName = item.direction === "sent" ? `Вы → ${item.recipient_name || "другу"}` : `От ${item.sender_name || "друга"}`;
           return `<button class="gift-card" type="button" data-gift-id="${safeText(item.id)}" style="--gift-glow:${gift.glow};--gift-accent:${gift.accent}" aria-label="${safeText(gift.name)}. ${safeText(fromName)}">
             ${item.is_pinned ? '<span class="gift-chip">★ ИЗБРАННОЕ</span>' : index === 0 && currentGiftFilter !== "sent" ? '<span class="gift-chip">НОВИНКА</span>' : ""}
-            <span class="gift-art">${gift.emoji}<span class="gift-spark" style="top:16px;right:18px"></span><span class="gift-spark" style="bottom:26px;left:17px"></span></span>
+            <span class="gift-art">${giftArt(gift)}<span class="gift-spark" style="top:16px;right:18px"></span><span class="gift-spark" style="bottom:26px;left:17px"></span></span>
             <span class="gift-name">${safeText(gift.name)}</span><span class="gift-detail">${safeText(gift.rarity)} · ${safeText(relativeDate(item.created_at))}</span>
             <span class="sent-tag">${safeText(fromName)}</span>
           </button>`;
@@ -314,10 +354,40 @@
     function openEditProfile() {
       document.getElementById("editName").value = profileName();
       document.getElementById("editUsername").value = profile?.username || "";
+      document.getElementById("editProfileStatus").value = profile?.status || "На связи";
       document.getElementById("editAbout").value = profile?.about || "";
-      showStatus("editStatus", "");
+      selectedAvatarColor = AVATAR_COLORS.includes(profile?.avatar_color) ? profile.avatar_color : AVATAR_COLORS[0];
+      selectedAvatarFile = null;
+      removeAvatar = false;
+      if (avatarPreviewObjectUrl) URL.revokeObjectURL(avatarPreviewObjectUrl);
+      avatarPreviewObjectUrl = null;
+      document.getElementById("avatarColorOptions").innerHTML = AVATAR_COLORS.map((color, index) =>
+        `<button class="avatar-color-option" type="button" role="radio" aria-label="Цвет аватара ${index + 1}" aria-checked="${color === selectedAvatarColor}" data-avatar-color="${color}" style="--swatch:${color}"></button>`
+      ).join("");
+      updateProfileEditPreview();
+      document.getElementById("statusCount").textContent = String(document.getElementById("editProfileStatus").value.length);
+      document.getElementById("aboutCount").textContent = String(document.getElementById("editAbout").value.length);
+      showStatus("editStatusError", "");
       openModal("editModal");
       document.getElementById("editName").focus();
+    }
+
+    function updateProfileEditPreview() {
+      const preview = document.getElementById("editAvatarPreview");
+      if (!preview) return;
+      preview.style.background = selectedAvatarColor;
+      const imageSource = selectedAvatarFile
+        ? avatarPreviewObjectUrl
+        : !removeAvatar ? avatarUrl(profile?.avatar_url) : "";
+      preview.replaceChildren();
+      if (imageSource) {
+        const image = document.createElement("img");
+        image.src = imageSource;
+        image.alt = "";
+        preview.append(image);
+      } else {
+        preview.textContent = initials(document.getElementById("editName").value.trim() || "Гость");
+      }
     }
 
     function openSendGift() {
@@ -335,7 +405,7 @@
         : "Подарки виртуальные и бесплатные — никакой оплаты или покупок.";
       showStatus("giftStatus", "");
       document.getElementById("catalogGrid").innerHTML = GIFTS.map(gift =>
-        `<button class="catalog-option" type="button" data-gift-key="${gift.key}" aria-pressed="false"><span class="catalog-emoji">${gift.emoji}</span><span class="catalog-name">${safeText(gift.name)}</span></button>`
+        `<button class="catalog-option" type="button" data-gift-key="${gift.key}" aria-pressed="false"><span class="catalog-emoji">${giftArt(gift)}</span><span class="catalog-name">${safeText(gift.name)}</span></button>`
       ).join("");
       document.querySelectorAll("[data-gift-key]").forEach(button => button.addEventListener("click", () => {
         selectedGift = button.dataset.giftKey;
@@ -480,7 +550,7 @@
       const sent = item.direction === "sent";
       document.getElementById("giftDetailsBody").innerHTML = `
         <div style="display:grid;place-items:center;padding:12px 0 20px;text-align:center">
-          <div class="gift-art" style="--gift-glow:${gift.glow};width:112px;height:112px;border-radius:32px;font-size:58px">${gift.emoji}</div>
+          <div class="gift-art" style="--gift-glow:${gift.glow};width:112px;height:112px;border-radius:32px;font-size:58px">${giftArt(gift)}</div>
           <h2 style="margin:15px 0 3px;font-size:20px">${safeText(gift.name)}</h2>
           <span class="eyebrow">${safeText(gift.rarity)} · ${safeText(relativeDate(item.created_at))}</span>
           <p style="max-width:330px;margin:12px 0 0;color:#aab8c5">${safeText(item.note || gift.description)}</p>
@@ -621,7 +691,7 @@
           throw new Error("Ссылка на профиль содержит два разных способа поиска.");
         }
         let profileQuery = supabaseClient.from("profiles")
-          .select("id, username, display_name, about, created_at")
+          .select("id, username, display_name, about, status, avatar_color, avatar_url, created_at")
         profileQuery = sharedUsername || sharedUserId
           ? sharedUsername ? profileQuery.eq("username", sharedUsername) : profileQuery.eq("id", sharedUserId)
           : profileQuery.eq("id", currentUser.id);
@@ -631,6 +701,7 @@
         profile = userProfile || {
           id: currentUser.id, username: guestUsername(currentUser.id),
           display_name: currentUser.user_metadata?.display_name || "Гость", about: "",
+          status: "На связи", avatar_color: AVATAR_COLORS[0], avatar_url: null,
           created_at: currentUser.created_at
         };
         isOwnProfile = profile.id === currentUser.id;
@@ -652,34 +723,99 @@
     }
 
     document.getElementById("shareProfileButton").addEventListener("click", shareProfile);
+    document.getElementById("avatarColorOptions").addEventListener("click", event => {
+      const option = event.target.closest("[data-avatar-color]");
+      if (!option || !AVATAR_COLORS.includes(option.dataset.avatarColor)) return;
+      selectedAvatarColor = option.dataset.avatarColor;
+      document.querySelectorAll(".avatar-color-option").forEach(button => {
+        button.setAttribute("aria-checked", String(button === option));
+      });
+      updateProfileEditPreview();
+    });
+    document.getElementById("editName").addEventListener("input", updateProfileEditPreview);
+    document.getElementById("avatarFileInput").addEventListener("change", event => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        showStatus("editStatusError", "Выберите изображение JPG, PNG или WebP.");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showStatus("editStatusError", "Размер аватара не должен превышать 5 МБ.");
+        return;
+      }
+      if (avatarPreviewObjectUrl) URL.revokeObjectURL(avatarPreviewObjectUrl);
+      selectedAvatarFile = file;
+      removeAvatar = false;
+      avatarPreviewObjectUrl = URL.createObjectURL(file);
+      showStatus("editStatusError", "");
+      updateProfileEditPreview();
+    });
+    document.getElementById("removeAvatarButton").addEventListener("click", () => {
+      selectedAvatarFile = null;
+      removeAvatar = true;
+      if (avatarPreviewObjectUrl) URL.revokeObjectURL(avatarPreviewObjectUrl);
+      avatarPreviewObjectUrl = null;
+      updateProfileEditPreview();
+    });
+    document.getElementById("editProfileStatus").addEventListener("input", event => {
+      document.getElementById("statusCount").textContent = String(event.target.value.length);
+    });
+    document.getElementById("editAbout").addEventListener("input", event => {
+      document.getElementById("aboutCount").textContent = String(event.target.value.length);
+    });
     document.getElementById("editProfileForm").addEventListener("submit", async event => {
       event.preventDefault();
       const display_name = document.getElementById("editName").value.trim();
       const usernameInput = document.getElementById("editUsername").value.trim().replace(/^@/, "");
       const username = usernameInput.toLowerCase();
       const about = document.getElementById("editAbout").value.trim();
-      showStatus("editStatus", "");
+      const status = document.getElementById("editProfileStatus").value.trim();
+      showStatus("editStatusError", "");
       if (!display_name || display_name.length > 60) {
-        showStatus("editStatus", "Имя должно содержать от 1 до 60 символов.");
+        showStatus("editStatusError", "Имя должно содержать от 1 до 60 символов.");
         return;
       }
       if (username && !/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
-        showStatus("editStatus", "Укажите 3–24 латинских буквы, цифры или _.");
+        showStatus("editStatusError", "Укажите 3–24 латинских буквы, цифры или _.");
         return;
       }
       if (about.length > 160) {
-        showStatus("editStatus", "Описание должно содержать не более 160 символов.");
+        showStatus("editStatusError", "Описание должно содержать не более 160 символов.");
+        return;
+      }
+      if (status.length > 60) {
+        showStatus("editStatusError", "Статус должен содержать не более 60 символов.");
         return;
       }
       const saveButton = document.getElementById("saveProfileButton");
       saveButton.disabled = true;
+      let uploadedAvatarPath = null;
+      const previousAvatarPath = profile?.avatar_url || null;
       try {
-        const updated = { ...profile, display_name, username: username || profile?.username || null, about };
+        let avatar_url = removeAvatar ? null : previousAvatarPath;
+        if (selectedAvatarFile) {
+          if (demoMode || !currentUser || !crypto.randomUUID) {
+            throw new Error("Для загрузки аватара подключите Supabase и откройте сайт по HTTPS.");
+          }
+          const extension = selectedAvatarFile.type === "image/png" ? "png"
+            : selectedAvatarFile.type === "image/webp" ? "webp" : "jpg";
+          uploadedAvatarPath = `${currentUser.id}/${crypto.randomUUID()}.${extension}`;
+          const { error: uploadError } = await supabaseClient.storage.from("profile-avatars")
+            .upload(uploadedAvatarPath, selectedAvatarFile, { contentType: selectedAvatarFile.type, upsert: false });
+          if (uploadError) throw uploadError;
+          avatar_url = uploadedAvatarPath;
+        }
+        const updated = {
+          ...profile, display_name, username: username || profile?.username || null,
+          about, status, avatar_color: selectedAvatarColor, avatar_url
+        };
         if (!demoMode) {
           const { data, error } = await supabaseClient.from("profiles")
-            .update({ display_name, username: username || null, about })
+            .update({ display_name, username: username || null, about, status, avatar_color: selectedAvatarColor, avatar_url })
             .eq("id", currentUser.id)
-            .select("id, username, display_name, about, created_at")
+            .select("id, username, display_name, about, status, avatar_color, avatar_url, created_at")
             .single();
           if (error) throw error;
           profile = data;
@@ -687,12 +823,36 @@
           profile = updated;
           saveDemo();
         }
+        if (!demoMode && previousAvatarPath && previousAvatarPath !== avatar_url) {
+          try {
+            const { error: removeError } = await supabaseClient.storage.from("profile-avatars").remove([previousAvatarPath]);
+            if (removeError) console.error("Не удалось удалить прежний аватар:", removeError);
+          } catch (removeError) {
+            console.error("Не удалось удалить прежний аватар:", removeError);
+          }
+        }
+        selectedAvatarFile = null;
+        removeAvatar = false;
+        if (avatarPreviewObjectUrl) URL.revokeObjectURL(avatarPreviewObjectUrl);
+        avatarPreviewObjectUrl = null;
         closeModal("editModal");
         renderProfile();
         showToast("Профиль обновлён ✨");
       } catch (error) {
+        if (uploadedAvatarPath) {
+          try {
+            const { error: cleanupError } = await supabaseClient.storage.from("profile-avatars").remove([uploadedAvatarPath]);
+            if (cleanupError) console.error("Не удалось очистить аватар после ошибки сохранения:", cleanupError);
+          } catch (cleanupError) {
+            console.error("Не удалось очистить аватар после ошибки сохранения:", cleanupError);
+          }
+        }
         console.error("Не удалось сохранить профиль:", error);
-        showStatus("editStatus", error.code === "23505" ? "Это имя пользователя уже занято." : error.message);
+        const message = error.code === "23505" ? "Это имя пользователя уже занято."
+          : error.message || "Не удалось сохранить профиль.";
+        showStatus("editStatusError", message.includes("avatar_url")
+          ? "Сначала примените обновлённую supabase/schema.sql, затем попробуйте ещё раз."
+          : message);
       } finally {
         saveButton.disabled = false;
       }

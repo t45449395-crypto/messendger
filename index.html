@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17212b">
   <meta name="description" content="Бесплатные личные сообщения и профили пользователей">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://mihxvkeogwwfzokmwqkt.supabase.co">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <title>Чаты — сообщения и звонки</title>
@@ -194,6 +196,7 @@
       font-weight: 600;
       letter-spacing: .3px;
     }
+    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
     .avatar.small { flex-basis: 40px; width: 40px; height: 40px; font-size: 15px; }
     .avatar.online::after {
       position: absolute;
@@ -332,11 +335,24 @@
     .attachment-link { display: block; max-width: min(390px, 72vw); margin-top: 5px; color: #c9e6ff; text-decoration: none; }
     .attachment-link:hover { text-decoration: underline; }
     .attachment-image, .attachment-video { display: block; max-width: min(390px, 72vw); max-height: 360px; border-radius: 10px; object-fit: contain; }
+    .attachment-image { cursor: zoom-in; }
+    .attachment-image:focus-visible { outline: 2px solid #76b9ff; outline-offset: 3px; }
     .attachment-audio { display: block; width: min(330px, 72vw); height: 40px; }
     .attachment-caption { display: block; max-width: 100%; margin-top: 5px; overflow-wrap: anywhere; color: #b7c8d5; font-size: 11px; }
     .message-meta { display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin: 3px 0 -3px 14px; color: #a9bfce; font-size: 10px; }
     .checks { color: #7bc6ec; letter-spacing: -3px; font-size: 13px; }
     .composer-wrap { position: relative; padding: 9px 4% 18px; }
+    .attachment-draft { display: flex; align-items: center; gap: 11px; max-width: 850px; margin: 0 auto 8px; padding: 8px 10px; border: 1px solid #ffffff12; border-radius: 14px; background: #1b2733; }
+    .attachment-draft[hidden] { display: none; }
+    .attachment-draft-preview { display: grid; width: 48px; height: 48px; flex: 0 0 auto; place-items: center; overflow: hidden; border-radius: 9px; background: #ffffff0c; color: #a9c5da; font-size: 22px; }
+    .attachment-draft-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .attachment-draft-copy { flex: 1; min-width: 0; }
+    .attachment-draft-name { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .attachment-draft-size { display: block; margin-top: 2px; color: #91a0ac; font-size: 10px; }
+    .image-viewer-backdrop { position: fixed; z-index: 19; inset: 0; display: grid; place-items: center; padding: 56px 18px 22px; background: #030609ed; backdrop-filter: blur(12px); }
+    .image-viewer-backdrop.hidden { display: none; }
+    .image-viewer-image { display: block; max-width: min(1200px, 96vw); max-height: calc(100dvh - 92px); object-fit: contain; }
+    .image-viewer-close { position: absolute; top: max(14px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); width: 42px; height: 42px; border: 1px solid #ffffff25; border-radius: 50%; background: #ffffff13; color: white; font-size: 24px; cursor: pointer; }
     .composer {
       display: flex;
       align-items: center;
@@ -471,32 +487,47 @@
     .text-button:hover { background: #ffffff0b; }
     .primary-button { background: var(--blue); color: white; font-weight: 600; }
     .primary-button:hover { background: #4aa0f3; }
-    .call-card { position: relative; width: min(860px, 100%); height: min(650px, 88vh); overflow: hidden; border: 1px solid #ffffff15; border-radius: 22px; background: radial-gradient(ellipse at 50% 25%, #2c4354, #101923 68%); box-shadow: var(--shadow); }
-    .call-main { display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 28px; text-align: center; }
-    .call-avatar { display: grid; place-items: center; width: 106px; height: 106px; margin-bottom: 20px; border-radius: 50%; background: linear-gradient(135deg, #61b4d6, #6470c3); font-size: 38px; font-weight: 600; box-shadow: 0 0 0 12px #ffffff08; }
-    .call-name { font-size: 24px; font-weight: 600; }
-    .call-status { min-height: 22px; margin-top: 8px; color: #adc0d0; }
-    .call-hint { max-width: 430px; margin-top: 20px; color: #8fa4b5; font-size: 12px; line-height: 1.6; }
-    .remote-video { display: none; position: absolute; inset: 0; width: 100%; height: 100%; background: #101923; object-fit: contain; }
+    .call-backdrop { z-index: 20; padding: 0; overflow: hidden; background: #080d13; backdrop-filter: none; }
+    .call-card { position: relative; width: 100%; height: 100%; height: 100dvh; overflow: hidden; isolation: isolate; background: radial-gradient(ellipse at 50% 36%, #24384a, #111923 62%, #0c121a); }
+    .call-topbar { position: absolute; z-index: 4; top: 0; right: 0; left: 0; display: flex; align-items: center; justify-content: space-between; padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 12px max(24px, env(safe-area-inset-left)); }
+    .call-type { display: inline-flex; align-items: center; gap: 9px; padding: 9px 13px; border: 1px solid #ffffff17; border-radius: 30px; background: #0c131dbb; color: #d7e1eb; font-size: 12px; font-weight: 600; backdrop-filter: blur(16px); }
+    .call-type svg { width: 16px; height: 16px; fill: none; stroke: #9dc9ed; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .call-close { display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid #ffffff1b; border-radius: 50%; background: #0c131dbb; color: #e6edf3; cursor: pointer; backdrop-filter: blur(16px); transition: background .16s, transform .16s; }
+    .call-close:hover { transform: scale(1.04); background: #d8454c; }
+    .call-close:focus-visible, .call-control:focus-visible { outline: 2px solid #9ed1ff; outline-offset: 3px; }
+    .call-close svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .call-main { position: relative; z-index: 1; display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 90px 28px 150px; text-align: center; }
+    .call-avatar { position: relative; display: grid; place-items: center; width: clamp(112px, 16vw, 156px); height: clamp(112px, 16vw, 156px); margin-bottom: 25px; overflow: hidden; border: 1px solid #ffffff33; border-radius: 50%; background: linear-gradient(135deg, #61b4d6, #6470c3); font-size: clamp(38px, 5vw, 52px); font-weight: 650; box-shadow: 0 0 0 13px #ffffff08, 0 20px 70px #0005, inset 0 0 30px #ffffff20; }
+    .call-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+    .call-name { max-width: min(80vw, 720px); overflow: hidden; font-size: clamp(27px, 4vw, 40px); font-weight: 650; letter-spacing: -.7px; text-overflow: ellipsis; white-space: nowrap; }
+    .call-status { min-height: 24px; margin-top: 10px; color: #bdcbd8; font-size: 15px; }
+    .call-hint { max-width: 430px; margin-top: 22px; color: #8497a7; font-size: 12px; line-height: 1.6; }
+    .remote-video { display: none; position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; background: #101923; object-fit: contain; }
     .remote-video.active { display: block; }
     .local-video { display: none; position: absolute; z-index: 1; top: 18px; right: 18px; width: min(210px, 32%); aspect-ratio: 4/3; border: 1px solid #ffffff60; border-radius: 13px; background: #101923; object-fit: cover; transform: scaleX(-1); }
-    .call-card.has-remote-video .call-main { z-index: 1; height: auto; margin: 20px; padding: 14px; border-radius: 15px; background: #101923aa; text-shadow: 0 1px 5px #000; backdrop-filter: blur(12px); }
-    .call-card.has-remote-video .call-avatar { width: 52px; height: 52px; margin: 0 0 8px; font-size: 19px; }
+    .call-card.has-remote-video .call-main { z-index: 1; height: auto; max-width: max-content; margin: calc(max(20px, env(safe-area-inset-top)) + 68px) 24px 0; padding: 14px 18px; border: 1px solid #ffffff1a; border-radius: 16px; background: #101923a8; text-align: left; text-shadow: 0 1px 5px #000; backdrop-filter: blur(14px); }
+    .call-card.has-remote-video .call-avatar { display: none; }
+    .call-card.has-remote-video .call-name { font-size: 19px; }
+    .call-card.has-remote-video .call-status { margin-top: 3px; font-size: 12px; }
     .call-card.has-remote-video .call-hint { display: none; }
-    .call-controls { position: absolute; right: 0; bottom: 28px; left: 0; display: flex; justify-content: center; gap: 14px; }
-    .audio-unlock { position: absolute; z-index: 4; right: 50%; bottom: 92px; transform: translateX(50%); padding: 11px 16px; border: 1px solid #ffffff24; border-radius: 22px; background: #245c86; color: white; cursor: pointer; white-space: nowrap; }
+    .call-controls { position: absolute; z-index: 3; right: 50%; bottom: max(30px, env(safe-area-inset-bottom)); display: flex; align-items: flex-start; justify-content: center; gap: clamp(14px, 3vw, 30px); padding: 14px 22px; border: 1px solid #ffffff17; border-radius: 24px; background: #101923d9; box-shadow: 0 16px 55px #0006; transform: translateX(50%); backdrop-filter: blur(20px); }
+    .call-control-wrap { display: grid; min-width: 54px; justify-items: center; gap: 8px; color: #d6e0e8; font-size: 11px; }
+    .audio-unlock { position: absolute; z-index: 4; right: 50%; bottom: max(112px, calc(env(safe-area-inset-bottom) + 108px)); transform: translateX(50%); padding: 11px 16px; border: 1px solid #ffffff24; border-radius: 22px; background: #245c86; color: white; cursor: pointer; white-space: nowrap; }
     .audio-unlock.hidden { display: none; }
-    .call-control { display: grid; place-items: center; width: 50px; height: 50px; border: 0; border-radius: 50%; background: #ffffff20; cursor: pointer; }
-    .call-control:hover { background: #ffffff36; }
-    .call-control.accept { background: #34a873; color: white; }
-    .call-control.accept:hover { background: #42bd84; }
-    .call-control.active { background: #fff; color: #273642; }
-    .call-control.end { background: #e5484d; transform: rotate(135deg); }
-    .call-control svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .call-control { display: grid; place-items: center; width: 58px; height: 58px; border: 1px solid #ffffff12; border-radius: 50%; background: #ffffff18; cursor: pointer; transition: background .16s, transform .16s; }
+    .call-control:hover { transform: translateY(-2px); background: #ffffff2d; }
+    .call-control.accept { background: #27a66a; color: white; }
+    .call-control.accept:hover { background: #35bc7c; }
+    .call-control.active { border-color: #ffffff45; background: #edf3f7; color: #273642; }
+    .call-control.end { background: #df4850; color: white; }
+    .call-control.end:hover { background: #f45a61; }
+    .call-control.end svg { transform: rotate(135deg); }
+    .call-control svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .toast { position: fixed; z-index: 8; right: 22px; bottom: 24px; max-width: min(380px, calc(100vw - 44px)); padding: 11px 16px; border: 1px solid #ffffff12; border-radius: 12px; background: #263746; color: #eff5f8; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transform: translateY(10px); transition: .2s; }
     .toast.show { opacity: 1; transform: translateY(0); }
+    body.call-active { overflow: hidden; }
     .file-input { display: none; }
-    .auth-screen { display: none; min-height: 100vh; min-height: 100dvh; align-items: center; justify-content: center; padding: 24px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); background: radial-gradient(ellipse at 50% 5%, #1b3853 0%, var(--page) 66%); }
+    .auth-screen { display: none; min-height: 100vh; min-height: 100dvh; align-items: center; justify-content: center; overflow-y: auto; padding: 24px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); background: radial-gradient(ellipse at 50% 5%, #1b3853 0%, var(--page) 66%); }
     body.auth-required .auth-screen { display: flex; }
     body.auth-required .app { display: none; }
     .auth-card { width: min(440px, 100%); padding: 32px; border: 1px solid #ffffff12; border-radius: 22px; background: #17212bf2; box-shadow: var(--shadow); }
@@ -508,6 +539,19 @@
     .auth-card .field-label { margin-top: 15px; }
     .auth-card .primary-button { width: 100%; min-height: 44px; margin-top: 18px; }
     .auth-card .dialog-error { margin-top: 12px; }
+    .auth-card .dialog-error.auth-success { color: #81d9b0; }
+    .auth-divider { display: flex; align-items: center; gap: 12px; margin: 19px 0; color: #718394; font-size: 11px; }
+    .auth-divider::before, .auth-divider::after { height: 1px; flex: 1; background: #ffffff13; content: ""; }
+    .auth-alternate { width: 100%; min-height: 43px; border: 1px solid #ffffff1b; border-radius: 10px; background: #ffffff08; color: #dbe5ed; cursor: pointer; }
+    .auth-alternate:hover { background: #ffffff10; }
+    .auth-email-form { display: grid; gap: 11px; }
+    .auth-email-form[hidden] { display: none; }
+    .auth-email-form .field-label { margin: 0; }
+    .auth-email-form .primary-button { width: 100%; min-height: 44px; }
+    .auth-email-form .dialog-input { min-height: 45px; }
+    .auth-code { letter-spacing: .38em; text-align: center; font-size: 20px !important; }
+    .auth-switch { padding: 7px; border: 0; background: transparent; color: #91c6f3; cursor: pointer; }
+    .auth-switch:hover { color: white; }
     .auth-security { margin: 18px 0 0; color: #7f909e; font-size: 11px; text-align: center; }
     .profile-phone { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 18px; padding: 12px; border-radius: 10px; background: #ffffff08; color: #b8c5ce; }
     .profile-phone strong { color: #eaf1f5; font-weight: 500; }
@@ -532,7 +576,10 @@
       .message { max-width: 84%; }
       .composer-wrap { padding: 8px 10px 12px; }
       .emoji-picker { bottom: calc(100% - 1px); left: 10px; }
-      .call-card { height: min(570px, 88vh); }
+      .call-topbar { padding-right: max(16px, env(safe-area-inset-right)); padding-left: max(16px, env(safe-area-inset-left)); }
+      .call-controls { bottom: max(18px, env(safe-area-inset-bottom)); gap: 13px; padding: 12px 16px; border-radius: 21px; }
+      .call-control { width: 54px; height: 54px; }
+      .call-card.has-remote-video .call-main { margin-right: 14px; margin-left: 14px; }
       .auth-card { padding: 26px 22px; }
       body { height: 100dvh; }
       .app { height: 100dvh; }
@@ -545,6 +592,14 @@
       .call-hint { padding: 0 10px; }
       .message { max-width: 90%; }
     }
+    @media (max-height: 520px) {
+      .call-avatar { width: 82px; height: 82px; margin-bottom: 12px; font-size: 30px; }
+      .call-name { font-size: 25px; }
+      .call-main { padding-top: 70px; padding-bottom: 120px; }
+      .call-controls { bottom: max(10px, env(safe-area-inset-bottom)); padding: 8px 14px; }
+      .call-control { width: 48px; height: 48px; }
+      .call-control-wrap { gap: 4px; font-size: 10px; }
+    }
     @media (max-width: 360px) {
       .conversation-header { gap: 8px; padding-right: 10px; padding-left: 10px; }
       .header-profile-button { gap: 8px; }
@@ -552,17 +607,37 @@
   </style>
 </head>
 <body>
-  <section class="auth-screen" id="authScreen" aria-label="Бесплатный гостевой вход">
-    <form class="auth-card" id="authForm">
+  <section class="auth-screen" id="authScreen" aria-label="Вход в мессенджер">
+    <div class="auth-card">
       <div class="auth-brand"><div class="brand-mark">Ч</div><div class="auth-brand-name">Чаты</div></div>
-      <h1 class="auth-title">Простой вход</h1>
-      <p class="auth-description">Продолжите как гость — без телефона, почты и пароля.</p>
-      <label class="field-label" for="authDisplayName">Как вас называть</label>
-      <input class="dialog-input" id="authDisplayName" maxlength="60" placeholder="Ваше имя (необязательно)" autocomplete="name">
-      <div class="dialog-error" id="authError" role="status" aria-live="polite"></div>
-      <button class="primary-button" id="authSubmit" type="submit">Продолжить бесплатно</button>
-      <p class="auth-security">Номер телефона и платные SMS не нужны. Сохраните данные браузера, чтобы не потерять доступ к профилю.</p>
-    </form>
+      <h1 class="auth-title">Рады вас видеть</h1>
+      <p class="auth-description">Войдите по коду из письма или продолжите без регистрации.</p>
+      <form id="authForm">
+        <label class="field-label" for="authDisplayName">Как вас называть</label>
+        <input class="dialog-input" id="authDisplayName" maxlength="60" placeholder="Ваше имя (необязательно)" autocomplete="name">
+        <div class="dialog-error" id="authError" role="status" aria-live="polite"></div>
+        <button class="primary-button" id="authSubmit" type="submit">Продолжить как гость</button>
+      </form>
+      <div class="auth-divider">или</div>
+      <button class="auth-alternate" id="showEmailAuthButton" type="button">Войти по коду из почты</button>
+      <form class="auth-email-form" id="emailAuthForm" hidden>
+        <label class="field-label" for="authEmail">Электронная почта</label>
+        <input class="dialog-input" id="authEmail" type="email" maxlength="254" placeholder="name@example.com" autocomplete="email" required>
+        <div id="authEmailNameField">
+          <label class="field-label" for="authEmailDisplayName">Как вас называть (для нового аккаунта)</label>
+          <input class="dialog-input" id="authEmailDisplayName" maxlength="60" placeholder="Ваше имя" autocomplete="name">
+        </div>
+        <div id="authCodeFields" hidden>
+          <label class="field-label" for="authEmailCode">Код из письма</label>
+          <input class="dialog-input auth-code" id="authEmailCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{6,8}" placeholder="••••••" aria-describedby="authEmailHelp">
+          <div class="field-help" id="authEmailHelp">Проверьте входящие и папку «Спам».</div>
+        </div>
+        <div class="dialog-error" id="emailAuthError" role="status" aria-live="polite"></div>
+        <button class="primary-button" id="emailAuthSubmit" type="submit">Отправить код</button>
+        <button class="auth-switch" id="emailAuthBackButton" type="button">← Другой способ входа</button>
+      </form>
+      <p class="auth-security">Код приходит на почту. Для сохранения гостевого профиля не очищайте данные браузера.</p>
+    </div>
   </section>
 
   <main class="app" id="app">
@@ -643,6 +718,7 @@
       <div class="messages" id="messages" role="log" aria-live="polite"></div>
       <div class="empty-state" id="emptyState"><span class="empty-pill">Напишите первое сообщение</span></div>
       <div class="composer-wrap">
+        <div class="attachment-draft" id="attachmentDraft" hidden aria-live="polite"></div>
         <section class="emoji-picker" id="emojiPicker" role="dialog" aria-label="Выбор эмодзи">
           <div class="emoji-picker-title">Эмодзи для сообщения</div>
           <input class="emoji-search" id="emojiSearch" type="search" placeholder="Найти эмодзи" aria-label="Поиск эмодзи" autocomplete="off">
@@ -720,39 +796,63 @@
     </section>
   </div>
 
-  <div class="call-backdrop" id="callModal" role="dialog" aria-modal="true" aria-label="Звонок">
+  <div class="call-backdrop" id="callModal" role="dialog" aria-modal="true" aria-label="Звонок" tabindex="-1">
     <div class="call-card">
+      <div class="call-topbar">
+        <span class="call-type" id="callType">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.7a15 15 0 0 0 4.8 4.8L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/></svg>
+          <span>Аудиозвонок</span>
+        </span>
+        <button class="call-close" id="closeCallButton" type="button" aria-label="Закрыть звонок" title="Завершить звонок">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
       <video class="local-video" id="localVideo" autoplay playsinline muted></video>
       <div class="call-main">
         <div class="call-avatar" id="callAvatar"></div>
         <div class="call-name" id="callName"></div>
         <div class="call-status" id="callStatus"></div>
-          <div class="call-hint" id="callHint">Звонки передаются напрямую между браузерами. На некоторых сетях для связи понадобится настроенный TURN-сервер.</div>
+        <div class="call-hint" id="callHint">Звонки передаются напрямую между браузерами. На некоторых сетях для связи понадобится настроенный TURN-сервер.</div>
       </div>
-        <video class="remote-video" id="remoteVideo" autoplay playsinline></video>
-        <audio id="remoteAudio" autoplay></audio>
-        <button class="audio-unlock hidden" id="audioUnlockButton" type="button">Включить звук собеседника</button>
-        <div class="call-controls">
-        <button class="call-control" id="muteButton" aria-label="Выключить микрофон" title="Микрофон">
-          <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
-        </button>
-        <button class="call-control" id="cameraButton" aria-label="Выключить камеру" title="Камера">
-          <svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>
-        </button>
-        <button class="call-control accept hidden" id="acceptCallButton" aria-label="Принять звонок" title="Принять звонок">
-          <svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.7a15 15 0 0 0 4.8 4.8L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/></svg>
-        </button>
-        <button class="call-control end" id="endCallButton" aria-label="Завершить звонок" title="Завершить звонок">
-          <svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.7a15 15 0 0 0 4.8 4.8L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/></svg>
-        </button>
+      <video class="remote-video" id="remoteVideo" autoplay playsinline></video>
+      <audio id="remoteAudio" autoplay></audio>
+      <button class="audio-unlock hidden" id="audioUnlockButton" type="button">Включить звук собеседника</button>
+      <div class="call-controls">
+        <span class="call-control-wrap">
+          <button class="call-control" id="muteButton" type="button" aria-label="Выключить микрофон" title="Микрофон">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
+          </button><span id="muteLabel">Микрофон</span>
+        </span>
+        <span class="call-control-wrap" id="cameraControlWrap">
+          <button class="call-control" id="cameraButton" type="button" aria-label="Выключить камеру" title="Камера">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>
+          </button><span id="cameraLabel">Камера</span>
+        </span>
+        <span class="call-control-wrap hidden" id="acceptControlWrap">
+          <button class="call-control accept" id="acceptCallButton" type="button" aria-label="Принять звонок" title="Принять звонок">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.7a15 15 0 0 0 4.8 4.8L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/></svg>
+          </button><span>Принять</span>
+        </span>
+        <span class="call-control-wrap">
+          <button class="call-control end" id="endCallButton" type="button" aria-label="Завершить звонок" title="Завершить звонок">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.7a15 15 0 0 0 4.8 4.8L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/></svg>
+          </button><span id="endCallLabel">Завершить</span>
+        </span>
       </div>
     </div>
+  </div>
+  <div class="image-viewer-backdrop hidden" id="imageViewer" role="dialog" aria-modal="true" aria-label="Просмотр изображения" tabindex="-1">
+    <button class="image-viewer-close" id="closeImageViewer" type="button" aria-label="Закрыть изображение">×</button>
+    <img class="image-viewer-image" id="imageViewerImage" alt="">
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="./config.js"></script>
   <script>
     const palette = ["#527da3", "#9d6c9b", "#bf785d", "#598879", "#6e78ad", "#ab8a48", "#548e9b"];
+    const timeFormatter = new Intl.DateTimeFormat("ru", { hour: "2-digit", minute: "2-digit" });
+    const shortDateFormatter = new Intl.DateTimeFormat("ru", { day: "2-digit", month: "2-digit" });
+    const callHistoryFormatter = new Intl.DateTimeFormat("ru", { dateStyle: "medium", timeStyle: "short" });
     const initialChats = [
       { id: "maria", name: "Мария Смирнова", type: "personal", online: true, unread: 2, time: "14:28", preview: "Отлично, до встречи! 👋", color: palette[1], messages: [
         { from: "them", text: "Привет! Ты уже посмотрел макет?", time: "14:21" },
@@ -819,8 +919,15 @@
     let groupCreationMode = false;
     let callHistoryRows = [];
     let pushRegistration = null;
+    let emailCodeSent = false;
+    let emailCodeAddress = "";
+    let callReturnFocus = null;
     const seenCallSignalIds = new Set();
     const attachmentUrlCache = new Map();
+    let pendingAttachment = null;
+    let pendingAttachmentPreviewUrl = null;
+    let pendingAttachmentChatId = null;
+    let imageViewerReturnFocus = null;
     const SOUND_PREFERENCE_KEY = "messenger-prototype-sounds-enabled";
     try {
       soundsEnabled = localStorage.getItem(SOUND_PREFERENCE_KEY) !== "false";
@@ -873,15 +980,15 @@
       if (Number.isNaN(date.getTime())) return "";
       const today = new Date();
       if (date.toDateString() === today.toDateString()) {
-        return new Intl.DateTimeFormat("ru", { hour: "2-digit", minute: "2-digit" }).format(date);
+        return timeFormatter.format(date);
       }
-      return new Intl.DateTimeFormat("ru", { day: "2-digit", month: "2-digit" }).format(date);
+      return shortDateFormatter.format(date);
     }
 
     async function loadProfile() {
       const { data, error } = await supabaseClient
         .from("profiles")
-        .select("id, username, display_name, about")
+        .select("id, username, display_name, about, status, avatar_color, avatar_url")
         .eq("id", currentUser.id)
         .maybeSingle();
       if (error) throw error;
@@ -897,7 +1004,7 @@
           display_name: displayName,
           username: `guest_${currentUser.id.replace(/-/g, "").slice(0, 12)}`
         })
-        .select("id, username, display_name, about")
+        .select("id, username, display_name, about, status, avatar_color, avatar_url")
         .single();
       if (createError) throw createError;
       currentProfile = created;
@@ -939,7 +1046,7 @@
 
       const memberIds = [...new Set((allMemberships || []).map(row => row.user_id))];
       const { data: profiles, error: profilesError } = memberIds.length
-        ? await supabaseClient.from("profiles").select("id, username, display_name, about").in("id", memberIds)
+        ? await supabaseClient.from("profiles").select("id, username, display_name, about, status, avatar_color, avatar_url").in("id", memberIds)
         : { data: [], error: null };
       if (profilesError) throw profilesError;
       const profilesById = new Map((profiles || []).map(profile => [profile.id, profile]));
@@ -982,7 +1089,10 @@
           unread: 0,
           time: lastMessage?.time || getChatTime(conversation.updated_at),
           preview: lastMessage?.attachment ? `📎 ${lastMessage.attachment.name}` : lastMessage?.text || "",
-          color: palette[index % palette.length],
+          color: /^#[0-9a-f]{6}$/i.test(person?.avatar_color || "")
+            ? person.avatar_color
+            : palette[index % palette.length],
+          avatarUrl: person?.avatar_url ? supabaseClient.storage.from("profile-avatars").getPublicUrl(person.avatar_url).data.publicUrl : "",
           messages: personMessages
         };
       });
@@ -1042,8 +1152,7 @@
         const peerId = row.caller_id === currentUser.id ? row.recipient_id : row.caller_id;
         const name = names.get(peerId) || "Пользователь";
         const outgoing = row.caller_id === currentUser.id;
-        const time = new Intl.DateTimeFormat("ru", { dateStyle: "medium", timeStyle: "short" })
-          .format(new Date(row.created_at));
+        const time = callHistoryFormatter.format(new Date(row.created_at));
         const callLabel = row.call_kind === "video" ? "Видеозвонок" : "Аудиозвонок";
         return `<article class="call-history-item">
           <button class="call-history-main" type="button" data-open-call-chat="${safeText(row.conversation_id)}" aria-label="Открыть чат с ${safeText(name)}">
@@ -1328,6 +1437,57 @@
       })[char]);
     }
 
+    function formatFileSize(size) {
+      return size >= 1024 * 1024
+        ? `${(size / (1024 * 1024)).toFixed(1)} МБ`
+        : `${Math.max(1, Math.round(size / 1024))} КБ`;
+    }
+
+    function clearAttachmentDraft() {
+      pendingAttachment = null;
+      pendingAttachmentChatId = null;
+      if (pendingAttachmentPreviewUrl) URL.revokeObjectURL(pendingAttachmentPreviewUrl);
+      pendingAttachmentPreviewUrl = null;
+      const draft = document.getElementById("attachmentDraft");
+      draft.hidden = true;
+      draft.replaceChildren();
+    }
+
+    function setAttachmentDraft(file) {
+      const allowedTypes = new Set([
+        "image/jpeg", "image/png", "image/gif", "image/webp",
+        "video/mp4", "video/webm", "audio/mpeg", "audio/mp4",
+        "audio/ogg", "audio/webm", "application/pdf", "text/plain"
+      ]);
+      if (!allowedTypes.has(file.type)) {
+        showToast("Этот тип файла не поддерживается.");
+        return;
+      }
+      if (!file.size || file.size > 20 * 1024 * 1024) {
+        showToast("Выберите файл размером до 20 МБ.");
+        return;
+      }
+      if (!activeChat()) {
+        showToast("Сначала выберите чат.");
+        return;
+      }
+      clearAttachmentDraft();
+      pendingAttachment = file;
+      pendingAttachmentChatId = activeId;
+      const draft = document.getElementById("attachmentDraft");
+      let preview = file.type.startsWith("video/") ? "▶" : file.type.startsWith("audio/") ? "♫" : "📎";
+      if (file.type.startsWith("image/")) {
+        pendingAttachmentPreviewUrl = URL.createObjectURL(file);
+        preview = `<img src="${safeText(pendingAttachmentPreviewUrl)}" alt="">`;
+      }
+      draft.innerHTML = `
+        <span class="attachment-draft-preview">${preview}</span>
+        <span class="attachment-draft-copy"><span class="attachment-draft-name">${safeText(file.name)}</span><span class="attachment-draft-size">${formatFileSize(file.size)} · можно добавить подпись</span></span>
+        <button class="icon-button" id="removeAttachmentDraft" type="button" aria-label="Убрать вложение">×</button>`;
+      draft.hidden = false;
+      document.getElementById("removeAttachmentDraft").addEventListener("click", clearAttachmentDraft);
+    }
+
     function renderEmojis(query = "") {
       const normalizedQuery = query.trim().toLocaleLowerCase("ru");
       const filtered = emojiChoices.filter(([, label]) => label.includes(normalizedQuery));
@@ -1359,25 +1519,29 @@
 
       chatList.innerHTML = visible.map(chat => `
         <article class="chat-row ${chat.id === activeId ? "selected" : ""}" data-chat-id="${safeText(chat.id)}" tabindex="0" role="button" aria-label="Открыть чат ${safeText(chat.name)}">
-          <div class="avatar ${chat.online ? "online" : ""}" style="--avatar:${safeText(chat.color)}">${safeText(initials(chat.name))}</div>
+          <div class="avatar ${chat.online ? "online" : ""}" style="--avatar:${safeText(chat.color)}">${safeText(initials(chat.name))}${chat.avatarUrl ? `<img src="${safeText(chat.avatarUrl)}" alt="" loading="lazy">` : ""}</div>
           <div class="chat-copy">
             <div class="chat-first"><span class="chat-name">${safeText(chat.name)}</span><time class="chat-time">${safeText(chat.time || "")}</time></div>
             <div class="chat-second"><span class="chat-preview">${safeText(chat.preview || "Нет сообщений")}</span>${chat.unread ? `<span class="unread">${chat.unread}</span>` : ""}</div>
           </div>
         </article>`).join("");
+        chatList.querySelectorAll(".avatar img").forEach(image => image.addEventListener("error", () => image.remove(), { once: true }));
       if (!visible.length) {
         chatList.innerHTML = `<div class="empty-pill" style="margin:18px 10px;text-align:center">${chats.length ? "Ничего не найдено" : "Пока нет переписок — найдите собеседника"}</div>`;
       }
-      chatList.querySelectorAll(".chat-row").forEach(row => {
-        row.addEventListener("click", () => selectChat(row.dataset.chatId));
-        row.addEventListener("keydown", event => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            selectChat(row.dataset.chatId);
-          }
-        });
-      });
     }
+
+    chatList.addEventListener("click", event => {
+      const row = event.target.closest(".chat-row");
+      if (row && chatList.contains(row)) selectChat(row.dataset.chatId);
+    });
+    chatList.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const row = event.target.closest(".chat-row");
+      if (!row || !chatList.contains(row)) return;
+      event.preventDefault();
+      selectChat(row.dataset.chatId);
+    });
 
     function renderMessages() {
       const chat = activeChat();
@@ -1392,7 +1556,8 @@
         return;
       }
       const avatar = document.getElementById("headerAvatar");
-      avatar.textContent = initials(chat.name);
+      avatar.innerHTML = `${safeText(initials(chat.name))}${chat.avatarUrl ? `<img src="${safeText(chat.avatarUrl)}" alt="">` : ""}`;
+      avatar.querySelector("img")?.addEventListener("error", event => event.currentTarget.remove(), { once: true });
       avatar.style.setProperty("--avatar", chat.color);
       avatar.classList.toggle("online", chat.online);
       document.getElementById("headerName").textContent = chat.name;
@@ -1420,6 +1585,24 @@
       resolveAttachmentLinks();
       document.getElementById("emptyState").innerHTML = `<span class="empty-pill">Напишите первое сообщение</span>`;
       document.getElementById("emptyState").style.display = chat.messages.length ? "none" : "flex";
+    }
+
+    function openImageViewer(url, filename) {
+      const viewer = document.getElementById("imageViewer");
+      const image = document.getElementById("imageViewerImage");
+      imageViewerReturnFocus = document.activeElement;
+      image.src = url;
+      image.alt = filename;
+      viewer.classList.remove("hidden");
+      document.getElementById("closeImageViewer").focus();
+    }
+
+    function closeImageViewer() {
+      const viewer = document.getElementById("imageViewer");
+      viewer.classList.add("hidden");
+      document.getElementById("imageViewerImage").removeAttribute("src");
+      if (imageViewerReturnFocus?.isConnected) imageViewerReturnFocus.focus();
+      imageViewerReturnFocus = null;
     }
 
     async function resolveAttachmentLinks() {
@@ -1453,6 +1636,25 @@
             image.src = cached.url;
             image.alt = filename;
             image.loading = "lazy";
+            image.tabIndex = 0;
+            image.setAttribute("role", "button");
+            image.setAttribute("aria-label", `Открыть изображение ${filename}`);
+            image.addEventListener("click", () => openImageViewer(cached.url, filename));
+            image.addEventListener("keydown", event => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openImageViewer(cached.url, filename);
+              }
+            });
+            image.addEventListener("error", () => {
+              const link = document.createElement("a");
+              link.className = "attachment-link";
+              link.href = cached.url;
+              link.target = "_blank";
+              link.rel = "noopener noreferrer";
+              link.textContent = `Не удалось показать изображение · открыть: ${filename}`;
+              placeholder.replaceChildren(link);
+            }, { once: true });
             placeholder.append(image);
           } else if (mime.startsWith("video/")) {
             const video = document.createElement("video");
@@ -1505,6 +1707,7 @@
 
     async function selectChat(id) {
       if (!chats.some(chat => chat.id === id)) return;
+      if (pendingAttachment && pendingAttachmentChatId !== id) clearAttachmentDraft();
       activeId = id;
       const chat = activeChat();
       chat.unread = 0;
@@ -1713,64 +1916,58 @@
       if (activeId === chat.id) renderConversation();
     }
 
-    async function uploadAttachment(file) {
+    async function uploadAttachment(file, caption = "") {
       const chat = activeChat();
       const allowedTypes = new Set([
         "image/jpeg", "image/png", "image/gif", "image/webp",
         "video/mp4", "video/webm", "audio/mpeg", "audio/mp4",
         "audio/ogg", "audio/webm", "application/pdf", "text/plain"
       ]);
-      if (!chat || !currentUser || !supabaseClient) {
-        showToast("Загрузка файлов станет доступна после настройки Supabase.");
-        return;
-      }
-      if (!allowedTypes.has(file.type)) {
-        showToast("Этот тип файла не поддерживается.");
-        return;
-      }
-      if (!file.size || file.size > 20 * 1024 * 1024) {
-        showToast("Выберите файл размером до 20 МБ.");
-        return;
-      }
+      if (!chat || !currentUser || !supabaseClient) throw new Error("Загрузка файлов станет доступна после настройки Supabase.");
+      if (!allowedTypes.has(file.type)) throw new Error("Этот тип файла не поддерживается.");
+      if (!file.size || file.size > 20 * 1024 * 1024) throw new Error("Выберите файл размером до 20 МБ.");
+      if (caption.trim().length > 4000) throw new Error("Подпись не должна быть длиннее 4000 символов.");
       const filename = file.name.replace(/[\\/\u0000-\u001f\u007f]/g, "_").trim().slice(0, 255);
-      if (!filename) {
-        showToast("У файла некорректное имя.");
-        return;
-      }
-      if (!crypto.randomUUID) {
-        showToast("Для безопасной загрузки откройте сайт через HTTPS.");
-        return;
-      }
+      if (!filename) throw new Error("У файла некорректное имя.");
+      if (!crypto.randomUUID) throw new Error("Для безопасной загрузки откройте сайт через HTTPS.");
       const extension = filename.match(/\.[a-zA-Z0-9]{1,10}$/)?.[0] || "";
       const path = `${chat.id}/${currentUser.id}/${crypto.randomUUID()}${extension}`;
       const attachButton = document.getElementById("attachButton");
+      const sendButton = document.querySelector("#messageForm .send-button");
       attachButton.disabled = true;
+      sendButton.disabled = true;
       showToast("Загружаем файл…");
+      let uploaded = false;
       try {
         const { error: uploadError } = await supabaseClient.storage.from("chat-attachments")
           .upload(path, file, { contentType: file.type, upsert: false });
         if (uploadError) throw uploadError;
+        uploaded = true;
         const attachment = { path, name: filename, mime: file.type, size: String(file.size) };
         const { data, error } = await supabaseClient.from("messages")
-          .insert({ conversation_id: chat.id, author_id: currentUser.id, body: "", attachment })
+          .insert({ conversation_id: chat.id, author_id: currentUser.id, body: caption.trim(), attachment })
           .select("id, conversation_id, author_id, body, attachment, created_at")
           .single();
-        if (error) {
-          const { error: cleanupError } = await supabaseClient.storage.from("chat-attachments").remove([path]);
-          if (cleanupError) console.error("Не удалось удалить файл после ошибки отправки:", cleanupError);
-          throw error;
-        }
+        if (error) throw error;
         addRemoteMessage(data);
         dispatchPush("message", data.id).catch(pushError => {
           console.error("Не удалось отправить уведомление о файле:", pushError);
         });
         playSound("sent");
-        showToast("Файл отправлен.");
+        showToast(file.type.startsWith("image/") ? "Изображение отправлено." : "Файл отправлен.");
       } catch (error) {
-        console.error("Не удалось загрузить вложение:", error);
-        showToast(`Не удалось отправить файл: ${error.message}`);
+        if (uploaded) {
+          try {
+            const { error: cleanupError } = await supabaseClient.storage.from("chat-attachments").remove([path]);
+            if (cleanupError) console.error("Не удалось удалить файл после ошибки отправки:", cleanupError);
+          } catch (cleanupError) {
+            console.error("Не удалось удалить файл после ошибки отправки:", cleanupError);
+          }
+        }
+        throw error;
       } finally {
         attachButton.disabled = false;
+        sendButton.disabled = false;
       }
     }
 
@@ -1819,16 +2016,25 @@
 
     document.getElementById("messageForm").addEventListener("submit", async event => {
       event.preventDefault();
+      const attachment = pendingAttachment;
+      const submittedChatId = activeId;
       try {
-        await sendMessage(messageInput.value);
+        if (attachment && pendingAttachmentChatId !== activeId) {
+          throw new Error("Выберите тот же чат, в котором подготовили вложение.");
+        }
+        if (attachment) await uploadAttachment(attachment, messageInput.value);
+        else await sendMessage(messageInput.value);
       } catch (error) {
         console.error("Не удалось отправить сообщение:", error);
         showToast(`Не удалось отправить сообщение: ${error.message}`);
         return;
       }
-      messageInput.value = "";
-      messageInput.style.height = "auto";
-      messageInput.focus();
+      if (attachment && pendingAttachment === attachment) clearAttachmentDraft();
+      if (activeId === submittedChatId) {
+        messageInput.value = "";
+        messageInput.style.height = "auto";
+        messageInput.focus();
+      }
     });
     messageInput.addEventListener("input", () => {
       messageInput.style.height = "auto";
@@ -2093,8 +2299,12 @@
     document.getElementById("fileInput").addEventListener("change", event => {
       const file = event.target.files?.[0];
       if (!file) return;
-      uploadAttachment(file);
+      setAttachmentDraft(file);
       event.target.value = "";
+    });
+    document.getElementById("closeImageViewer").addEventListener("click", closeImageViewer);
+    document.getElementById("imageViewer").addEventListener("click", event => {
+      if (event.target.id === "imageViewer") closeImageViewer();
     });
     document.getElementById("backButton").addEventListener("click", () => app.classList.remove("chat-open"));
     document.getElementById("menuButton").addEventListener("click", () => document.getElementById("profileButton").click());
@@ -2104,31 +2314,105 @@
       refreshPremiumStatus();
     });
 
+    function finishAuthRedirect() {
+      const returnPath = new URLSearchParams(location.search).get("next");
+      const validProfileReturnPath = returnPath === "profile.html" ||
+        /^profile\.html\?user=[a-zA-Z0-9_]{3,24}$/.test(returnPath || "") ||
+        /^profile\.html\?id=[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(returnPath || "");
+      if (returnPath && validProfileReturnPath) location.href = `./${returnPath}`;
+    }
+
     document.getElementById("authForm").addEventListener("submit", async event => {
       event.preventDefault();
       setError("authError", "");
       const submit = document.getElementById("authSubmit");
       submit.disabled = true;
       try {
+        if (!supabaseClient) throw new Error("Не удалось подключиться к Supabase. Проверьте интернет и обновите страницу.");
         const displayName = document.getElementById("authDisplayName").value.trim() || "Гость";
         const { data, error } = await supabaseClient.auth.signInAnonymously({
           options: { data: { display_name: displayName } }
         });
         if (error) throw error;
         await handleSignedIn(data.user);
-        const returnPath = new URLSearchParams(location.search).get("next");
-        const validProfileReturnPath = returnPath === "profile.html" ||
-          /^profile\.html\?user=[a-zA-Z0-9_]{3,24}$/.test(returnPath || "") ||
-          /^profile\.html\?id=[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(returnPath || "");
-        if (returnPath && validProfileReturnPath) {
-          location.href = `./${returnPath}`;
-        }
+        finishAuthRedirect();
       } catch (error) {
         console.error("Не удалось войти как гость:", error);
         const errorMessage = error.message || "Не удалось выполнить вход.";
         setError("authError", errorMessage.toLowerCase().includes("anonymous")
           ? "Включите гостевой вход в Supabase: Authentication → Sign In / Providers → Anonymous Sign-Ins."
           : errorMessage);
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    document.getElementById("showEmailAuthButton").addEventListener("click", () => {
+      document.getElementById("authForm").hidden = true;
+      document.getElementById("showEmailAuthButton").hidden = true;
+      document.querySelector(".auth-divider").hidden = true;
+      document.getElementById("emailAuthForm").hidden = false;
+      document.getElementById("authEmail").focus();
+    });
+
+    document.getElementById("emailAuthBackButton").addEventListener("click", () => {
+      emailCodeSent = false;
+      emailCodeAddress = "";
+      document.getElementById("authEmailCode").value = "";
+      document.getElementById("authCodeFields").hidden = true;
+      document.getElementById("authEmailNameField").hidden = false;
+      document.getElementById("emailAuthSubmit").textContent = "Отправить код";
+      document.getElementById("authEmail").readOnly = false;
+      document.getElementById("emailAuthForm").hidden = true;
+      document.getElementById("authForm").hidden = false;
+      document.getElementById("showEmailAuthButton").hidden = false;
+      document.querySelector(".auth-divider").hidden = false;
+      setError("emailAuthError", "");
+      document.getElementById("authDisplayName").focus();
+    });
+
+    document.getElementById("emailAuthForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const email = document.getElementById("authEmail").value.trim().toLowerCase();
+      const codeInput = document.getElementById("authEmailCode");
+      const submit = document.getElementById("emailAuthSubmit");
+      setError("emailAuthError", "");
+      document.getElementById("emailAuthError").classList.remove("auth-success");
+      submit.disabled = true;
+      try {
+        if (!supabaseClient) throw new Error("Не удалось подключиться к Supabase. Проверьте интернет и обновите страницу.");
+        if (!emailCodeSent) {
+          const displayName = document.getElementById("authEmailDisplayName").value.trim() || email.split("@")[0];
+          const { error } = await supabaseClient.auth.signInWithOtp({
+            email,
+            options: { shouldCreateUser: true, data: { display_name: displayName } }
+          });
+          if (error) throw error;
+          emailCodeSent = true;
+          emailCodeAddress = email;
+          document.getElementById("authEmail").readOnly = true;
+          document.getElementById("authEmailNameField").hidden = true;
+          document.getElementById("authCodeFields").hidden = false;
+          submit.textContent = "Подтвердить код";
+          codeInput.required = true;
+          codeInput.focus();
+          document.getElementById("emailAuthError").classList.add("auth-success");
+          setError("emailAuthError", `Код отправлен на ${email}. Проверьте также папку «Спам».`);
+        } else {
+          if (email !== emailCodeAddress) throw new Error("Адрес изменился. Вернитесь назад и запросите новый код.");
+          const { data, error } = await supabaseClient.auth.verifyOtp({
+            email,
+            token: codeInput.value.trim(),
+            type: "email"
+          });
+          if (error) throw error;
+          if (!data.user) throw new Error("Код подтверждён, но аккаунт не вернулся. Попробуйте войти снова.");
+          await handleSignedIn(data.user);
+          finishAuthRedirect();
+        }
+      } catch (error) {
+        console.error("Не удалось выполнить вход по email:", error);
+        setError("emailAuthError", error.message || "Не удалось выполнить вход.");
       } finally {
         submit.disabled = false;
       }
@@ -2150,13 +2434,28 @@
       document.getElementById("callName").textContent = chat.name;
       const avatar = document.getElementById("callAvatar");
       avatar.textContent = initials(chat.name);
-      avatar.style.background = `linear-gradient(135deg, ${chat.color}, #3c526f)`;
+      if (chat.avatarUrl) {
+        const image = document.createElement("img");
+        image.src = chat.avatarUrl;
+        image.alt = "";
+        image.addEventListener("error", () => image.remove(), { once: true });
+        avatar.append(image);
+      }
+      const avatarColor = /^#[0-9a-f]{6}$/i.test(chat.color || "") ? chat.color : "#527da3";
+      avatar.style.background = `linear-gradient(135deg, ${avatarColor}, #3c526f)`;
       const isVideo = activeCall?.kind === "video";
+      const callType = document.getElementById("callType");
+      callType.querySelector("span").textContent = isVideo ? "Видеозвонок" : "Аудиозвонок";
+      callType.querySelector("svg").innerHTML = isVideo
+        ? '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/>'
+        : '<path d="M5 4h4l2 5-2.5 1.7a15 15 0 0 0 4.8 4.8L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/>';
       localVideo.style.display = isVideo && callStream ? "block" : "none";
       document.getElementById("cameraButton").style.display = isVideo ? "grid" : "none";
-      document.getElementById("acceptCallButton").classList.toggle("hidden", !activeCall?.incoming);
+      document.getElementById("cameraControlWrap").classList.toggle("hidden", !isVideo);
+      document.getElementById("acceptControlWrap").classList.toggle("hidden", !activeCall?.incoming);
       document.getElementById("endCallButton").setAttribute("aria-label", activeCall?.incoming ? "Отклонить звонок" : "Завершить звонок");
       document.getElementById("endCallButton").title = activeCall?.incoming ? "Отклонить" : "Завершить звонок";
+      document.getElementById("endCallLabel").textContent = activeCall?.incoming ? "Отклонить" : "Завершить";
       document.querySelector(".call-card").classList.remove("has-remote-video");
       remoteVideo.classList.remove("active");
       remoteVideo.srcObject = null;
@@ -2166,7 +2465,14 @@
       document.getElementById("audioUnlockButton").classList.add("hidden");
       document.getElementById("muteButton").classList.remove("active");
       document.getElementById("cameraButton").classList.remove("active");
+      document.getElementById("muteLabel").textContent = "Микрофон";
+      document.getElementById("cameraLabel").textContent = "Камера";
+      if (!callModal.classList.contains("open")) {
+        callReturnFocus = document.activeElement;
+      }
       callModal.classList.add("open");
+      document.body.classList.add("call-active");
+      document.getElementById("closeCallButton").focus();
     }
 
     async function subscribeToCallSignals() {
@@ -2528,8 +2834,11 @@
         await connection.setLocalDescription(answer);
         call.incoming = false;
         call.accepted = true;
+        document.getElementById("acceptControlWrap").classList.add("hidden");
         document.getElementById("endCallButton").setAttribute("aria-label", "Завершить звонок");
         document.getElementById("endCallButton").title = "Завершить звонок";
+        document.getElementById("endCallLabel").textContent = "Завершить";
+        document.getElementById("endCallButton").focus();
         await sendCallSignal("answer", { sdp: answer.sdp });
         setCallStatus("Подключаем звонок…");
       } catch (error) {
@@ -2542,9 +2851,11 @@
         localVideo.style.display = "none";
         call.incoming = true;
         call.accepted = false;
-        document.getElementById("acceptCallButton").classList.remove("hidden");
+        document.getElementById("acceptControlWrap").classList.remove("hidden");
         document.getElementById("muteButton").classList.remove("active");
         document.getElementById("cameraButton").classList.remove("active");
+        document.getElementById("muteLabel").textContent = "Микрофон";
+        document.getElementById("cameraLabel").textContent = "Камера";
         document.getElementById("cameraButton").style.display = call.kind === "video" ? "grid" : "none";
         document.getElementById("endCallButton").setAttribute("aria-label", "Отклонить звонок");
         document.getElementById("endCallButton").title = "Отклонить";
@@ -2586,12 +2897,15 @@
       document.getElementById("audioUnlockButton").classList.add("hidden");
       localVideo.srcObject = null;
       document.querySelector(".call-card").classList.remove("has-remote-video");
-      document.getElementById("acceptCallButton").classList.add("hidden");
+      document.getElementById("acceptControlWrap").classList.add("hidden");
       document.getElementById("acceptCallButton").disabled = false;
       document.getElementById("endCallButton").setAttribute("aria-label", "Завершить звонок");
       document.getElementById("endCallButton").title = "Завершить звонок";
       callModal.classList.remove("open");
+      document.body.classList.remove("call-active");
       if (call) pendingIceCandidates.delete(call.id);
+      if (callReturnFocus instanceof HTMLElement && callReturnFocus.isConnected) callReturnFocus.focus();
+      callReturnFocus = null;
     }
 
     document.getElementById("audioCallButton").addEventListener("click", () => startCall("audio"));
@@ -2610,11 +2924,15 @@
     document.getElementById("endCallButton").addEventListener("click", () => {
       finishCall(true, Boolean(activeCall?.incoming && !activeCall?.accepted));
     });
+    document.getElementById("closeCallButton").addEventListener("click", () => {
+      finishCall(true, Boolean(activeCall?.incoming && !activeCall?.accepted));
+    });
     document.getElementById("muteButton").addEventListener("click", event => {
       const button = event.currentTarget;
       const muted = button.classList.toggle("active");
       callStream?.getAudioTracks().forEach(track => { track.enabled = !muted; });
       button.setAttribute("aria-label", muted ? "Включить микрофон" : "Выключить микрофон");
+      document.getElementById("muteLabel").textContent = muted ? "Микрофон выкл." : "Микрофон";
       if (!callStream) showToast("Для работы микрофона разрешите доступ к устройству.");
     });
     document.getElementById("cameraButton").addEventListener("click", event => {
@@ -2622,13 +2940,15 @@
       const disabled = button.classList.toggle("active");
       callStream?.getVideoTracks().forEach(track => { track.enabled = !disabled; });
       button.setAttribute("aria-label", disabled ? "Включить камеру" : "Выключить камеру");
+      document.getElementById("cameraLabel").textContent = disabled ? "Камера выкл." : "Камера";
       if (!callStream) showToast("Для работы камеры разрешите доступ к устройству.");
-    });
-    callModal.addEventListener("click", event => {
-      if (event.target === callModal) finishCall(true, Boolean(activeCall?.incoming && !activeCall?.accepted));
     });
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") {
+        if (!document.getElementById("imageViewer").classList.contains("hidden")) {
+          closeImageViewer();
+          return;
+        }
         document.getElementById("newChatModal").classList.remove("open");
         document.getElementById("premiumModal").classList.remove("open");
         emojiPicker.classList.remove("open");
