@@ -600,23 +600,34 @@
         if (error) throw error;
         if (!data.session?.user) {
           const sharedUsername = new URLSearchParams(location.search).get("user");
-          const returnPath = sharedUsername ? `profile.html?user=${encodeURIComponent(sharedUsername)}` : "profile.html";
+          const sharedUserId = new URLSearchParams(location.search).get("id");
+          const returnPath = sharedUsername
+            ? `profile.html?user=${encodeURIComponent(sharedUsername)}`
+            : sharedUserId ? `profile.html?id=${encodeURIComponent(sharedUserId)}` : "profile.html";
           document.getElementById("profileContent").innerHTML = `<div class="gift-empty"><div><strong>Сначала войдите в аккаунт</strong><span>Войдите как гость, чтобы открыть профиль и посмотреть подарки.</span><p><a class="button" href="./index.html?next=${encodeURIComponent(returnPath)}">Бесплатно продолжить</a></p></div></div>`;
           return;
         }
         currentUser = data.session.user;
-        const sharedUsername = new URLSearchParams(location.search).get("user");
+        const profileParams = new URLSearchParams(location.search);
+        const sharedUsername = profileParams.get("user");
+        const sharedUserId = profileParams.get("id");
         if (sharedUsername && !/^[a-zA-Z0-9_]{3,24}$/.test(sharedUsername)) {
           throw new Error("Ссылка на профиль содержит некорректное имя пользователя.");
         }
+        if (sharedUserId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sharedUserId)) {
+          throw new Error("Ссылка на профиль содержит некорректный идентификатор.");
+        }
+        if (sharedUsername && sharedUserId) {
+          throw new Error("Ссылка на профиль содержит два разных способа поиска.");
+        }
         let profileQuery = supabaseClient.from("profiles")
           .select("id, username, display_name, about, created_at")
-        profileQuery = sharedUsername
-          ? profileQuery.eq("username", sharedUsername)
+        profileQuery = sharedUsername || sharedUserId
+          ? sharedUsername ? profileQuery.eq("username", sharedUsername) : profileQuery.eq("id", sharedUserId)
           : profileQuery.eq("id", currentUser.id);
         const { data: userProfile, error: profileError } = await profileQuery.maybeSingle();
         if (profileError) throw profileError;
-        if (!userProfile && sharedUsername) throw new Error("Профиль по этой ссылке не найден.");
+        if (!userProfile && (sharedUsername || sharedUserId)) throw new Error("Профиль по этой ссылке не найден.");
         profile = userProfile || {
           id: currentUser.id, username: guestUsername(currentUser.id),
           display_name: currentUser.user_metadata?.display_name || "Гость", about: "",
