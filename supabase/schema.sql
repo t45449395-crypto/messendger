@@ -476,7 +476,7 @@ declare
   current_user_id uuid := auth.uid();
   first_user_id uuid;
   second_user_id uuid;
-  conversation_id uuid;
+  v_conversation_id uuid;
 begin
   if current_user_id is null then
     raise exception 'Authentication required';
@@ -495,13 +495,13 @@ begin
   values (first_user_id, second_user_id)
   on conflict (user_one, user_two) do update
     set updated_at = now()
-  returning id into conversation_id;
+  returning id into v_conversation_id;
 
   insert into public.conversation_members (conversation_id, user_id)
-  values (conversation_id, current_user_id), (conversation_id, other_user_id)
+  values (v_conversation_id, current_user_id), (v_conversation_id, other_user_id)
   on conflict (conversation_id, user_id) do nothing;
 
-  return conversation_id;
+  return v_conversation_id;
 end;
 $$;
 
@@ -518,7 +518,7 @@ declare
   current_user_id uuid := auth.uid();
   group_title text := btrim(coalesce(p_title, ''));
   group_member_ids uuid[];
-  conversation_id uuid;
+  v_conversation_id uuid;
 begin
   if current_user_id is null then
     raise exception 'Authentication required';
@@ -545,14 +545,14 @@ begin
 
   insert into public.conversations (kind, title)
   values ('group', group_title)
-  returning id into conversation_id;
+  returning id into v_conversation_id;
 
   insert into public.conversation_members (conversation_id, user_id)
-  select conversation_id, member_id
+  select v_conversation_id, member_id
   from unnest(array_append(group_member_ids, current_user_id)) participants(member_id)
   on conflict (conversation_id, user_id) do nothing;
 
-  return conversation_id;
+  return v_conversation_id;
 end;
 $$;
 
