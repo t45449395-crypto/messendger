@@ -10,7 +10,7 @@
 4. В **Project Settings → API** скопируйте Project URL и publishable key (`sb_publishable_...`). Старый `anon` key тоже подходит. Никогда не используйте в браузере `service_role` или secret key.
 5. Впишите URL и publishable key в `config.js`. Публичный ключ предназначен для браузера; безопасность данных обеспечивают политики RLS из `supabase/schema.sql`.
 6. В настройках Supabase Auth добавьте адрес GitHub Pages в список разрешённых Redirect URLs, например `https://ВАШ-ЛОГИН.github.io/ВАШ-РЕПОЗИТОРИЙ/`.
-7. Загрузите файлы проекта в GitHub и включите **Settings → Pages → Deploy from a branch**.
+7. Отправьте файлы проекта в ветку `main`. GitHub Actions автоматически опубликует сайт. Если публикация не стартовала, откройте **Settings → Pages** и выберите источник **GitHub Actions**.
 
 Пока в `config.js` не указаны ключи, приложение запускается в демо-режиме: переписка сохраняется только в текущем браузере. После настройки Supabase сайт автоматически предложит бесплатный гостевой вход.
 
