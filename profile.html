@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c121c">
+  <meta name="description" content="Профиль пользователя и коллекция подарков">
+  <title>Профиль — Чаты</title>
+  <link rel="stylesheet" href="./profile.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="./index.html" aria-label="Вернуться к чатам">
+        <span class="brand-mark">Ч</span>
+        <span>Чаты</span>
+      </a>
+      <nav class="topbar-actions" aria-label="Действия">
+        <button class="icon-button hidden" id="signOutButton" type="button" aria-label="Выйти из аккаунта" title="Выйти из аккаунта">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5m5 5H9"/></svg>
+        </button>
+        <button class="button-secondary" id="shareProfileButton" type="button" aria-label="Скопировать ссылку на профиль">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.07 0l3-3A5 5 0 0 0 13 2.93l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3A5 5 0 0 0 11 21.07l1.71-1.71"/></svg>
+          <span>Поделиться</span>
+        </button>
+        <a class="icon-button" href="./index.html" aria-label="Открыть чаты" title="К чатам">
+          <svg viewBox="0 0 24 24"><path d="M8 5H5a2 2 0 0 0-2 2v12l4-3h10a2 2 0 0 0 2-2v-3"/><path d="m13 5 6-3 3 6-6 3-3-6ZM13 5l3 6"/></svg>
+        </a>
+      </nav>
+    </header>
+
+    <nav class="breadcrumb" aria-label="Навигационная цепочка">
+      <a href="./index.html">Чаты</a><span class="separator" aria-hidden="true">/</span><span>Профиль</span>
+    </nav>
+
+    <main id="profileContent" aria-live="polite">
+      <div class="loading" role="status"><span class="loading-dot" aria-label="Загружаем профиль"></span></div>
+    </main>
+    <footer class="footer-note">Ваш профиль и подарки · приятно быть на связи ✨</footer>
+  </div>
+
+  <div class="modal-backdrop" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <form class="dialog" id="editProfileForm">
+      <div class="dialog-head">
+        <span class="dialog-title" id="editTitle">Настроить профиль</span>
+        <button class="icon-button" type="button" data-close="editModal" aria-label="Закрыть">
+          <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <div class="field">
+          <label class="field-label" for="editName">Как вас называть</label>
+          <input class="field-input" id="editName" maxlength="60" required autocomplete="name">
+        </div>
+        <div class="field">
+          <label class="field-label" for="editUsername">Имя пользователя</label>
+          <input class="field-input" id="editUsername" maxlength="24" placeholder="Например, alex_neo" autocomplete="username">
+          <div class="field-help">3–24 символа: латинские буквы, цифры и подчёркивание.</div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="editAbout">О себе</label>
+          <textarea class="field-textarea" id="editAbout" maxlength="160" placeholder="Пара слов о том, что вам нравится"></textarea>
+        </div>
+        <div class="status" id="editStatus" role="status" aria-live="polite"></div>
+        <div class="dialog-actions">
+          <button class="button-secondary" type="button" data-close="editModal">Отмена</button>
+          <button class="button" id="saveProfileButton" type="submit">Сохранить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal-backdrop" id="sendGiftModal" role="dialog" aria-modal="true" aria-labelledby="sendGiftTitle">
+    <form class="dialog" id="sendGiftForm">
+      <div class="dialog-head">
+        <span class="dialog-title" id="sendGiftTitle">Отправить подарок</span>
+        <button class="icon-button" type="button" data-close="sendGiftModal" aria-label="Закрыть">
+          <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <label class="field-label" for="recipientSearch">Кому подарим?</label>
+        <input class="field-input" id="recipientSearch" placeholder="Имя или @username" maxlength="40" autocomplete="off">
+        <div class="recipient-results" id="recipientResults" aria-live="polite"></div>
+        <label class="field-label" style="margin-top:16px">Выберите подарок</label>
+        <div class="catalog-grid" id="catalogGrid"></div>
+        <div class="field" style="margin-top:14px">
+          <label class="field-label" for="giftNote">Тёплые слова <span style="color:#758594;font-weight:400">(необязательно)</span></label>
+          <input class="field-input" id="giftNote" maxlength="160" placeholder="Например: увидел и подумал о тебе 💛">
+        </div>
+        <p class="modal-note" id="giftAvailabilityNote">Подарки виртуальные и бесплатные — никакой оплаты или покупок.</p>
+        <div class="status" id="giftStatus" role="status" aria-live="polite"></div>
+        <div class="dialog-actions">
+          <button class="button-secondary" type="button" data-close="sendGiftModal">Отмена</button>
+          <button class="button" id="confirmSendGiftButton" type="submit">Отправить подарок</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal-backdrop" id="giftDetailsModal" role="dialog" aria-modal="true" aria-labelledby="giftDetailsTitle">
+    <section class="dialog">
+      <div class="dialog-head">
+        <span class="dialog-title" id="giftDetailsTitle">Подарок</span>
+        <button class="icon-button" type="button" data-close="giftDetailsModal" aria-label="Закрыть">
+          <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="dialog-body" id="giftDetailsBody"></div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="./config.js"></script>
+  <script>
+    const GIFTS = [
+      { key: "star", name: "Звёздный вечер", emoji: "🌟", rarity: "Особенный", glow: "#d8aa4f38", accent: "#f4d089", description: "Пусть сегодня всё складывается особенно красиво." },
+      { key: "bouquet", name: "Тёплый букет", emoji: "💐", rarity: "Нежный", glow: "#cf668a36", accent: "#f69eba", description: "Просто чтобы напомнить: вы прекрасны." },
+      { key: "cat", name: "Мур-мур", emoji: "🐱", rarity: "Милый", glow: "#a978e33d", accent: "#c5a2ff", description: "Немного пушистого настроения на весь день." },
+      { key: "cup", name: "Кофейная пауза", emoji: "☕", rarity: "Уютный", glow: "#d58e5439", accent: "#f2ba7c", description: "Пусть найдётся время на глоток тепла." },
+      { key: "planet", name: "Моя планета", emoji: "🪐", rarity: "Космический", glow: "#647de747", accent: "#aabaff", description: "Ты — целый удивительный мир." },
+      { key: "crown", name: "Корона дня", emoji: "👑", rarity: "Редкий", glow: "#e5bf5b40", accent: "#ffe28a", description: "Сегодня главный герой — ты." },
+      { key: "heart", name: "С теплом", emoji: "💌", rarity: "От души", glow: "#ed6c7940", accent: "#ffadb5", description: "Маленькая открытка с большими чувствами." },
+      { key: "sparkle", name: "Искра вдохновения", emoji: "✨", rarity: "Вдохновение", glow: "#80c9f13a", accent: "#9ce5ff", description: "Пусть новая идея найдётся именно сегодня." }
+    ];
+    const DEMO_CONTACTS = [
+      { id: "maria", name: "Мария Смирнова", username: "maria_s", initials: "МС" },
+      { id: "anton", name: "Антон Петров", username: "anton_p", initials: "АП" },
+      { id: "olga", name: "Ольга", username: "olga_sun", initials: "О" },
+      { id: "ilya", name: "Илья", username: "ilya_design", initials: "И" }
+    ];
+    const PROFILE_KEY = "messenger-prototype-profile";
+    const GIFTS_KEY = "messenger-prototype-gifts";
+    const config = window.APP_CONFIG || {};
+    const demoMode = !(config.supabaseUrl && config.supabasePublishableKey);
+    let supabaseClient = null;
+    let currentUser = null;
+    let profile = null;
+    let isOwnProfile = true;
+    let gifts = [];
+    let contacts = [];
+    let selectedRecipient = null;
+    let selectedGift = null;
+    let currentGiftFilter = "all";
+    let giftsChannel = null;
+    let toastTimer;
+    let searchTimer;
+    let searchToken = 0;
+    let giftsLoadToken = 0;
+
+    const safeText = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[char]);
+    const giftByKey = key => GIFTS.find(gift => gift.key === key);
+    const initials = name => String(name || "Г").trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
+    const profileName = () => profile?.display_name || "Алексей";
+    const guestUsername = id => `guest_${String(id).replace(/-/g, "").slice(0, 12)}`;
+    const relativeDate = value => {
+      if (!value) return "Недавно";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "Недавно";
+      const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86400000));
+      if (days === 0) return "Сегодня";
+      if (days === 1) return "Вчера";
+      if (days < 7) return `${days} дн. назад`;
+      return new Intl.DateTimeFormat("ru", { day: "numeric", month: "short", year: "numeric" }).format(date);
+    };
+
+    function showToast(message) {
+      const element = document.getElementById("toast");
+      element.textContent = message;
+      element.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => element.classList.remove("show"), 2800);
+    }
+
+    function showStatus(id, message) {
+      document.getElementById(id).textContent = message || "";
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("open");
+      if (!document.querySelector(".modal-backdrop.open")) document.body.style.overflow = "";
+    }
+
+    function saveDemo() {
+      try {
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        localStorage.setItem(GIFTS_KEY, JSON.stringify(gifts));
+      } catch (error) {
+        console.error("Не удалось сохранить профиль в браузере:", error);
+        throw new Error("Браузер не разрешил сохранить данные профиля.");
+      }
+    }
+
+    function renderProfile() {
+      const count = gifts.length;
+      const incoming = gifts.filter(gift => gift.direction !== "sent").length;
+      const sent = gifts.filter(gift => gift.direction === "sent").length;
+      const firstGiftDate = gifts.map(gift => gift.created_at).filter(Boolean).sort()[0];
+      const displayName = profileName();
+      const username = profile?.username || (currentUser ? guestUsername(currentUser.id) : "alex_neo");
+      const about = profile?.about || "Люблю красивые идеи, тёплые разговоры и маленькие радости каждый день. ✨";
+      const birthday = profile?.birthday || "Начал общаться в 2024";
+      const accountLabel = demoMode ? "Демо-профиль" : currentUser?.is_anonymous ? "Гостевой аккаунт" : "Участник";
+      const avatarColor = profile?.avatar_color || "linear-gradient(145deg, #8bd1f4, #7784ed 52%, #b776d8)";
+      document.title = `${displayName} — профиль`;
+
+      document.getElementById("profileContent").innerHTML = `
+        <section class="profile-hero" aria-label="Обложка профиля">
+          <div class="hero-pattern" aria-hidden="true"></div><div class="hero-glow" aria-hidden="true"></div>
+          <div class="hero-content">
+            <div class="avatar-wrap"><div class="profile-avatar" id="mainAvatar" style="background:${safeText(avatarColor)}">${safeText(initials(displayName))}</div><span class="online-dot" title="Профиль активен"></span></div>
+            <div class="hero-copy">
+              <div class="profile-kicker">${safeText(accountLabel)} <span class="verified" aria-label="Аккаунт создан">✓</span></div>
+              <h1 class="profile-title">${safeText(displayName)}</h1>
+              <div class="profile-username">@${safeText(username)}</div>
+              <p class="profile-about">${safeText(about)}</p>
+            </div>
+            <div class="hero-actions">
+              ${isOwnProfile ? `<button class="button" id="editProfileButton" type="button">
+                <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>Редактировать
+              </button>` : ""}
+              <button class="button-secondary" id="heroSendGiftButton" type="button">
+                <svg viewBox="0 0 24 24"><path d="M20 12v10H4V12m-2-5h20v5H2zm10 0v15M12 7H7.5a2.5 2.5 0 1 1 2.35-3.35L12 7Zm0 0h4.5a2.5 2.5 0 1 0-2.35-3.35L12 7Z"/></svg>${isOwnProfile ? "Подарить другу" : "Подарить"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="profile-overview" aria-label="Информация о профиле">
+          <article class="panel about-panel">
+            <div class="section-heading"><h2>О себе</h2><span class="eyebrow">ПРОФИЛЬ</span></div>
+            <p class="bio-text">${safeText(about)}</p>
+            <div class="detail-list">
+              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span><span class="detail-copy"><span class="detail-label">Дата регистрации</span><span class="detail-value">${safeText(birthday)}</span></span></div>
+              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-7.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h8M8 14h5"/></svg></span><span class="detail-copy"><span class="detail-label">Статус</span><span class="detail-value">На связи · живу в моменте</span></span></div>
+              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-7-11a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 6.6-7 11-7 11Z"/></svg></span><span class="detail-copy"><span class="detail-label">Любимое настроение</span><span class="detail-value">Доброта и любопытство</span></span></div>
+              <div class="detail-item"><span class="detail-icon"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="8"/></svg></span><span class="detail-copy"><span class="detail-label">Уровень энергии</span><span class="detail-value">Почти всегда заряжен ⚡</span></span></div>
+            </div>
+          </article>
+          <aside class="panel stats-panel" aria-label="Статистика профиля">
+            <div class="stat-card"><div class="stat-top"><span>Друзья</span><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="stat-value">${demoMode ? "38" : "—"}</div><div class="stat-sub">приятных людей</div></div>
+            <div class="stat-card"><div class="stat-top"><span>Сообщения</span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></div><div class="stat-value">${demoMode ? "1.2к" : "—"}</div><div class="stat-sub">историй и мыслей</div></div>
+            <div class="stat-card accent"><div class="stat-top"><span>Подарки</span><svg viewBox="0 0 24 24"><path d="M20 12v10H4V12m-2-5h20v5H2zm10 0v15M12 7H7.5a2.5 2.5 0 1 1 2.35-3.35L12 7Zm0 0h4.5a2.5 2.5 0 1 0-2.35-3.35L12 7Z"/></svg></div><div class="stat-value" id="receivedGiftStat">${incoming}</div><div class="stat-sub">в коллекции</div></div>
+            <div class="stat-card"><div class="stat-top"><span>В сети</span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg></div><div class="stat-value" style="font-size:17px">сейчас</div><div class="stat-sub">рады видеть вас</div></div>
+          </aside>
+        </section>
+
+        <section class="panel gifts-panel" aria-labelledby="giftsTitle">
+          <div class="section-heading">
+            <div><div class="gift-heading-copy"><h2 id="giftsTitle">Коллекция подарков</h2><span class="gift-total" id="giftTotal">${count}</span></div><p class="gift-subtitle">Маленькие знаки внимания, которые делают день теплее.</p></div>
+            <div class="gift-heading-right"><button class="button" id="sendGiftButton" type="button"><svg viewBox="0 0 24 24"><path d="M20 12v10H4V12m-2-5h20v5H2zm10 0v15M12 7H7.5a2.5 2.5 0 1 1 2.35-3.35L12 7Zm0 0h4.5a2.5 2.5 0 1 0-2.35-3.35L12 7Z"/></svg>Подарить</button></div>
+          </div>
+          <div class="gift-tabs" role="tablist" aria-label="Фильтр подарков">
+            <button class="gift-tab ${currentGiftFilter === "all" ? "active" : ""}" type="button" role="tab" aria-selected="${currentGiftFilter === "all"}" data-gift-filter="all">Все</button>
+            <button class="gift-tab ${currentGiftFilter === "received" ? "active" : ""}" type="button" role="tab" aria-selected="${currentGiftFilter === "received"}" data-gift-filter="received">Полученные <span>${incoming}</span></button>
+            <button class="gift-tab ${currentGiftFilter === "sent" ? "active" : ""}" type="button" role="tab" aria-selected="${currentGiftFilter === "sent"}" data-gift-filter="sent">Отправленные <span>${sent}</span></button>
+            <button class="gift-tab ${currentGiftFilter === "pinned" ? "active" : ""}" type="button" role="tab" aria-selected="${currentGiftFilter === "pinned"}" data-gift-filter="pinned">Избранные</button>
+          </div>
+          <div class="gift-grid" id="giftGrid"></div>
+        </section>`;
+
+      document.getElementById("editProfileButton")?.addEventListener("click", openEditProfile);
+      document.getElementById("heroSendGiftButton").addEventListener("click", openSendGift);
+      document.getElementById("sendGiftButton").addEventListener("click", openSendGift);
+      document.querySelectorAll("[data-gift-filter]").forEach(button => button.addEventListener("click", () => {
+        currentGiftFilter = button.dataset.giftFilter;
+        renderGiftTabs();
+      }));
+      renderGiftTabs();
+    }
+
+    function renderGiftTabs() {
+      document.querySelectorAll("[data-gift-filter]").forEach(button => {
+        button.classList.toggle("active", button.dataset.giftFilter === currentGiftFilter);
+        button.setAttribute("aria-selected", String(button.dataset.giftFilter === currentGiftFilter));
+      });
+      const visibleGifts = gifts.filter(gift => {
+        if (currentGiftFilter === "received") return gift.direction !== "sent";
+        if (currentGiftFilter === "sent") return gift.direction === "sent";
+        if (currentGiftFilter === "pinned") return gift.is_pinned;
+        return true;
+      });
+      const grid = document.getElementById("giftGrid");
+      if (!visibleGifts.length) {
+        const title = currentGiftFilter === "sent" ? "Пока нет отправленных подарков" :
+          currentGiftFilter === "pinned" ? "Избранные подарки появятся здесь" : "Коллекция ещё ждёт первого подарка";
+        grid.innerHTML = `<div class="gift-empty"><div><div class="gift-empty-icon">${currentGiftFilter === "sent" ? "💌" : currentGiftFilter === "pinned" ? "⭐" : "🎁"}</div><strong>${title}</strong><span>Подарки виртуальные и бесплатные — просто отправьте кому-нибудь приятный знак внимания.</span></div></div>`;
+      } else {
+        grid.innerHTML = visibleGifts.map((item, index) => {
+          const gift = giftByKey(item.gift_key);
+          if (!gift) return "";
+          const fromName = item.direction === "sent" ? `Вы → ${item.recipient_name || "другу"}` : `От ${item.sender_name || "друга"}`;
+          return `<button class="gift-card" type="button" data-gift-id="${safeText(item.id)}" style="--gift-glow:${gift.glow};--gift-accent:${gift.accent}" aria-label="${safeText(gift.name)}. ${safeText(fromName)}">
+            ${item.is_pinned ? '<span class="gift-chip">★ ИЗБРАННОЕ</span>' : index === 0 && currentGiftFilter !== "sent" ? '<span class="gift-chip">НОВИНКА</span>' : ""}
+            <span class="gift-art">${gift.emoji}<span class="gift-spark" style="top:16px;right:18px"></span><span class="gift-spark" style="bottom:26px;left:17px"></span></span>
+            <span class="gift-name">${safeText(gift.name)}</span><span class="gift-detail">${safeText(gift.rarity)} · ${safeText(relativeDate(item.created_at))}</span>
+            <span class="sent-tag">${safeText(fromName)}</span>
+          </button>`;
+        }).join("");
+      }
+      document.querySelectorAll("[data-gift-id]").forEach(button => button.addEventListener("click", () => {
+        const item = gifts.find(gift => gift.id === button.dataset.giftId);
+        if (item) showGiftDetails(item);
+      }));
+    }
+
+    function openEditProfile() {
+      document.getElementById("editName").value = profileName();
+      document.getElementById("editUsername").value = profile?.username || "";
+      document.getElementById("editAbout").value = profile?.about || "";
+      showStatus("editStatus", "");
+      openModal("editModal");
+      document.getElementById("editName").focus();
+    }
+
+    function openSendGift() {
+      selectedRecipient = isOwnProfile ? null : {
+        id: profile.id,
+        name: profileName(),
+        username: profile.username || ""
+      };
+      selectedGift = null;
+      document.getElementById("recipientSearch").value = "";
+      document.getElementById("recipientResults").innerHTML = "";
+      document.getElementById("giftNote").value = "";
+      document.getElementById("giftAvailabilityNote").textContent = demoMode
+        ? "Подарки виртуальные и бесплатные. В демо-режиме они сохраняются только в вашем браузере."
+        : "Подарки виртуальные и бесплатные — никакой оплаты или покупок.";
+      showStatus("giftStatus", "");
+      document.getElementById("catalogGrid").innerHTML = GIFTS.map(gift =>
+        `<button class="catalog-option" type="button" data-gift-key="${gift.key}" aria-pressed="false"><span class="catalog-emoji">${gift.emoji}</span><span class="catalog-name">${safeText(gift.name)}</span></button>`
+      ).join("");
+      document.querySelectorAll("[data-gift-key]").forEach(button => button.addEventListener("click", () => {
+        selectedGift = button.dataset.giftKey;
+        document.querySelectorAll("[data-gift-key]").forEach(option => {
+          const selected = option === button;
+          option.classList.toggle("selected", selected);
+          option.setAttribute("aria-pressed", String(selected));
+        });
+        showStatus("giftStatus", "");
+      }));
+      contacts = isOwnProfile ? (demoMode ? DEMO_CONTACTS : []) : [selectedRecipient];
+      if (demoMode || !isOwnProfile) renderRecipients(contacts);
+      document.getElementById("sendGiftTitle").textContent = isOwnProfile ? "Отправить подарок" : `Подарок для ${profileName()}`;
+      openModal("sendGiftModal");
+      document.getElementById("recipientSearch").focus();
+    }
+
+    function renderRecipients(list) {
+      const results = document.getElementById("recipientResults");
+      if (!list.length) {
+        results.innerHTML = `<span class="field-help">Пока не нашли собеседников. Введите другое имя.</span>`;
+        return;
+      }
+      results.innerHTML = list.map(person =>
+        `<button class="recipient-option ${selectedRecipient?.id === person.id ? "selected" : ""}" type="button" data-recipient-id="${safeText(person.id)}">
+          <span class="recipient-avatar">${safeText(initials(person.name))}</span>
+          <span class="recipient-copy"><span class="recipient-name">${safeText(person.name)}</span><br><span class="recipient-username">@${safeText(person.username || "user")}</span></span>
+        </button>`
+      ).join("");
+      results.querySelectorAll("[data-recipient-id]").forEach(button => button.addEventListener("click", () => {
+        selectedRecipient = list.find(person => person.id === button.dataset.recipientId);
+        results.querySelectorAll("[data-recipient-id]").forEach(item => item.classList.toggle("selected", item === button));
+        showStatus("giftStatus", "");
+      }));
+    }
+
+    async function searchRecipients(query, token) {
+      if (token !== searchToken) return;
+      if (demoMode) {
+        const filtered = DEMO_CONTACTS.filter(person =>
+          `${person.name} ${person.username}`.toLowerCase().includes(query.toLowerCase().replace(/^@/, ""))
+        );
+        contacts = filtered;
+        renderRecipients(filtered);
+        return;
+      }
+      if (query.replace(/^@/, "").trim().length < 3) {
+        document.getElementById("recipientResults").innerHTML = `<span class="field-help">Введите не менее 3 символов.</span>`;
+        return;
+      }
+      document.getElementById("recipientResults").innerHTML = `<span class="field-help">Ищем друзей…</span>`;
+      const { data, error } = await supabaseClient.rpc("search_profiles", { search_term: query.replace(/^@/, "").trim() });
+      if (token !== searchToken) return;
+      if (error) {
+        console.error("Не удалось найти получателей подарка:", error);
+        document.getElementById("recipientResults").innerHTML = `<span class="field-help">Не удалось найти людей. ${safeText(error.message)}</span>`;
+        return;
+      }
+      contacts = (data || []).map(person => ({ id: person.id, name: person.display_name || person.username || "Пользователь", username: person.username || "" }));
+      renderRecipients(contacts);
+    }
+
+    async function sendGift(event) {
+      event.preventDefault();
+      showStatus("giftStatus", "");
+      if (!selectedRecipient) {
+        showStatus("giftStatus", "Сначала выберите получателя.");
+        return;
+      }
+      if (!selectedGift) {
+        showStatus("giftStatus", "Выберите подарок из коллекции.");
+        return;
+      }
+      const button = document.getElementById("confirmSendGiftButton");
+      button.disabled = true;
+      try {
+        const note = document.getElementById("giftNote").value.trim();
+        const selected = giftByKey(selectedGift);
+        if (!demoMode) {
+          const { error } = await supabaseClient.rpc("send_gift", {
+              p_recipient_id: selectedRecipient.id,
+              p_gift_key: selected.key,
+              p_note: note
+          });
+          if (error) throw error;
+          await loadGifts();
+        } else {
+          const newGift = {
+            id: `gift-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+            gift_key: selected.key,
+            direction: "sent",
+            sender_name: profileName(),
+            recipient_name: selectedRecipient.name,
+            recipient_id: selectedRecipient.id,
+            sender_id: "demo-owner",
+            note,
+            created_at: new Date().toISOString(),
+            is_pinned: false
+          };
+          gifts.unshift(newGift);
+          saveDemo();
+          renderProfile();
+        }
+        closeModal("sendGiftModal");
+        showToast(demoMode
+          ? `${selected.emoji} Демо: подарок добавлен в отправленные — другой пользователь его пока не увидит.`
+          : `${selected.emoji} Подарок отправлен ${selectedRecipient.name}!`);
+      } catch (error) {
+        console.error("Не удалось отправить подарок:", error);
+        showStatus("giftStatus", `Не удалось отправить подарок: ${error.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function subscribeToGifts() {
+      if (!supabaseClient || !currentUser || !profile?.id) return;
+      if (giftsChannel) supabaseClient.removeChannel(giftsChannel);
+      giftsChannel = supabaseClient.channel(`profile-gifts-${profile.id}`)
+        .on("postgres_changes", {
+          event: "INSERT",
+          schema: "public",
+          table: "user_gifts",
+          filter: `owner_id=eq.${profile.id}`
+        }, payload => {
+          if (payload.new.sender_id === currentUser.id) return;
+          loadGifts().catch(error => {
+            console.error("Не удалось обновить коллекцию подарков:", error);
+            showToast("Не удалось обновить коллекцию подарков.");
+          });
+        })
+        .subscribe(status => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            showToast("Не удалось подключиться к обновлениям подарков.");
+          }
+        });
+    }
+
+    function showGiftDetails(item) {
+      const gift = giftByKey(item.gift_key);
+      if (!gift) return;
+      const sent = item.direction === "sent";
+      document.getElementById("giftDetailsBody").innerHTML = `
+        <div style="display:grid;place-items:center;padding:12px 0 20px;text-align:center">
+          <div class="gift-art" style="--gift-glow:${gift.glow};width:112px;height:112px;border-radius:32px;font-size:58px">${gift.emoji}</div>
+          <h2 style="margin:15px 0 3px;font-size:20px">${safeText(gift.name)}</h2>
+          <span class="eyebrow">${safeText(gift.rarity)} · ${safeText(relativeDate(item.created_at))}</span>
+          <p style="max-width:330px;margin:12px 0 0;color:#aab8c5">${safeText(item.note || gift.description)}</p>
+          <p style="margin:13px 0 0;color:#9aa8b7;font-size:12px">${sent ? `Вы отправили ${safeText(item.recipient_name || "другу")}` : `Подарок от ${safeText(item.sender_name || "друга")}`}</p>
+        </div>
+        <div class="dialog-actions"><button class="button-secondary" type="button" data-pin-gift="${safeText(item.id)}">${item.is_pinned ? "Убрать из избранного" : "В избранное ⭐"}</button><button class="button" type="button" data-close="giftDetailsModal">Готово</button></div>`;
+      document.getElementById("giftDetailsBody").querySelector("[data-pin-gift]").addEventListener("click", () => togglePin(item));
+      openModal("giftDetailsModal");
+    }
+
+    async function togglePin(item) {
+      const next = !item.is_pinned;
+      if (!demoMode) {
+        const { error } = await supabaseClient.from("user_gifts").update({ is_pinned: next }).eq("id", item.id).eq("owner_id", currentUser.id);
+        if (error) {
+          console.error("Не удалось изменить избранное:", error);
+          showToast(`Не удалось обновить подарок: ${error.message}`);
+          return;
+        }
+      }
+      item.is_pinned = next;
+      if (demoMode) saveDemo();
+      closeModal("giftDetailsModal");
+      renderGiftTabs();
+      showToast(next ? "Подарок добавлен в избранное ⭐" : "Подарок убран из избранного.");
+    }
+
+    async function shareProfile() {
+      if (demoMode) {
+        showToast("Публичная ссылка появится после подключения Supabase. Демо-профиль хранится в браузере.");
+        return;
+      }
+      const username = profile?.username || (currentUser ? guestUsername(currentUser.id) : "alex_neo");
+      const url = `${location.origin}${location.pathname}?user=${encodeURIComponent(username)}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast("Ссылка на профиль скопирована.");
+      } catch (error) {
+        console.warn("Clipboard API is unavailable:", error);
+        showToast(`Ссылка на профиль: ${url}`);
+      }
+    }
+
+    async function loadGifts() {
+      if (!currentUser || demoMode) return;
+      const requestId = ++giftsLoadToken;
+      let giftsQuery = supabaseClient.from("user_gifts")
+        .select("id, owner_id, sender_id, gift_key, note, created_at, is_pinned");
+      giftsQuery = isOwnProfile
+        ? giftsQuery.or(`owner_id.eq.${profile.id},sender_id.eq.${profile.id}`)
+        : giftsQuery.eq("owner_id", profile.id);
+      const { data, error } = await giftsQuery.order("created_at", { ascending: false });
+      if (error) throw error;
+      if (requestId !== giftsLoadToken) return;
+      const rows = data || [];
+      const peopleIds = [...new Set(rows.flatMap(row => [row.owner_id, row.sender_id]).filter(id => id !== profile.id))];
+      const names = new Map([[profile.id, profileName()]]);
+      if (peopleIds.length) {
+        const { data: people, error: peopleError } = await supabaseClient.from("profiles").select("id, display_name").in("id", peopleIds);
+        if (peopleError) throw peopleError;
+        for (const person of people || []) names.set(person.id, person.display_name);
+      }
+      gifts = rows.map(row => {
+        const sent = row.sender_id === profile.id;
+        return {
+          ...row,
+          direction: sent ? "sent" : "received",
+          sender_name: names.get(row.sender_id) || "Друг",
+          recipient_name: names.get(row.owner_id) || "Друг",
+          recipient_id: row.owner_id
+        };
+      });
+      renderGiftTabs();
+      document.getElementById("giftTotal").textContent = gifts.length;
+      document.getElementById("receivedGiftStat").textContent = gifts.filter(gift => gift.direction !== "sent").length;
+      const heading = document.getElementById("giftsTitle");
+      if (heading) heading.textContent = "Коллекция подарков";
+    }
+
+    async function initializeProfile() {
+      if (demoMode) {
+        try {
+          const savedProfile = JSON.parse(localStorage.getItem(PROFILE_KEY) || "null");
+          profile = savedProfile && typeof savedProfile === "object"
+            ? savedProfile
+            : { display_name: "Алексей", username: "alex_neo", about: "Люблю красивые идеи, тёплые разговоры и маленькие радости каждый день. ✨", created_at: "2024-01-15T12:00:00.000Z" };
+          const savedGifts = JSON.parse(localStorage.getItem(GIFTS_KEY) || "null");
+          gifts = Array.isArray(savedGifts) ? savedGifts : [
+            { id: "demo-gift-star", gift_key: "star", direction: "received", sender_name: "Мария Смирнова", sender_id: "maria", note: "Пусть твой день сияет так же ярко 🌟", created_at: new Date(Date.now() - 2 * 86400000).toISOString(), is_pinned: true },
+            { id: "demo-gift-bouquet", gift_key: "bouquet", direction: "received", sender_name: "Ольга", sender_id: "olga", note: "Просто потому, что ты чудесный человек 💐", created_at: new Date(Date.now() - 9 * 86400000).toISOString(), is_pinned: false },
+            { id: "demo-gift-cat", gift_key: "cat", direction: "received", sender_name: "Антон Петров", sender_id: "anton", note: "", created_at: new Date(Date.now() - 18 * 86400000).toISOString(), is_pinned: false },
+            { id: "demo-gift-cup", gift_key: "cup", direction: "received", sender_name: "Илья", sender_id: "ilya", note: "", created_at: new Date(Date.now() - 32 * 86400000).toISOString(), is_pinned: false }
+          ];
+          localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+          localStorage.setItem(GIFTS_KEY, JSON.stringify(gifts));
+        } catch (error) {
+          console.error("Не удалось загрузить локальный профиль:", error);
+          document.getElementById("profileContent").innerHTML = `<div class="gift-empty">Не удалось загрузить профиль. ${safeText(error.message)}</div>`;
+          return;
+        }
+        renderProfile();
+        return;
+      }
+
+      try {
+        if (!window.supabase?.createClient) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+            script.onload = () => window.supabase?.createClient ? resolve() : reject(new Error("Библиотека Supabase не загрузилась."));
+            script.onerror = () => reject(new Error("Не удалось загрузить Supabase. Проверьте подключение к интернету."));
+            document.head.appendChild(script);
+          });
+        }
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+        const { data, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
+        if (!data.session?.user) {
+          const sharedUsername = new URLSearchParams(location.search).get("user");
+          const returnPath = sharedUsername ? `profile.html?user=${encodeURIComponent(sharedUsername)}` : "profile.html";
+          document.getElementById("profileContent").innerHTML = `<div class="gift-empty"><div><strong>Сначала войдите в аккаунт</strong><span>Войдите как гость, чтобы открыть профиль и посмотреть подарки.</span><p><a class="button" href="./index.html?next=${encodeURIComponent(returnPath)}">Бесплатно продолжить</a></p></div></div>`;
+          return;
+        }
+        currentUser = data.session.user;
+        const sharedUsername = new URLSearchParams(location.search).get("user");
+        if (sharedUsername && !/^[a-zA-Z0-9_]{3,24}$/.test(sharedUsername)) {
+          throw new Error("Ссылка на профиль содержит некорректное имя пользователя.");
+        }
+        let profileQuery = supabaseClient.from("profiles")
+          .select("id, username, display_name, about, created_at")
+        profileQuery = sharedUsername
+          ? profileQuery.eq("username", sharedUsername)
+          : profileQuery.eq("id", currentUser.id);
+        const { data: userProfile, error: profileError } = await profileQuery.maybeSingle();
+        if (profileError) throw profileError;
+        if (!userProfile && sharedUsername) throw new Error("Профиль по этой ссылке не найден.");
+        profile = userProfile || {
+          id: currentUser.id, username: guestUsername(currentUser.id),
+          display_name: currentUser.user_metadata?.display_name || "Гость", about: "",
+          created_at: currentUser.created_at
+        };
+        isOwnProfile = profile.id === currentUser.id;
+        document.getElementById("signOutButton").classList.toggle("hidden", !isOwnProfile);
+        renderProfile();
+        try {
+          await loadGifts();
+        } catch (error) {
+          console.error("Не удалось загрузить подарки:", error);
+          gifts = [];
+          renderGiftTabs();
+          showToast("Для сохранения подарков примени обновлённую schema.sql в Supabase.");
+        }
+        subscribeToGifts();
+      } catch (error) {
+        console.error("Не удалось загрузить профиль Supabase:", error);
+        document.getElementById("profileContent").innerHTML = `<div class="gift-empty"><div><strong>Профиль не загрузился</strong><span>${safeText(error.message)}</span><p><a class="button" href="./index.html">Вернуться в чаты</a></p></div></div>`;
+      }
+    }
+
+    document.getElementById("shareProfileButton").addEventListener("click", shareProfile);
+    document.getElementById("editProfileForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const display_name = document.getElementById("editName").value.trim();
+      const usernameInput = document.getElementById("editUsername").value.trim().replace(/^@/, "");
+      const username = usernameInput.toLowerCase();
+      const about = document.getElementById("editAbout").value.trim();
+      showStatus("editStatus", "");
+      if (!display_name || display_name.length > 60) {
+        showStatus("editStatus", "Имя должно содержать от 1 до 60 символов.");
+        return;
+      }
+      if (username && !/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+        showStatus("editStatus", "Укажите 3–24 латинских буквы, цифры или _.");
+        return;
+      }
+      if (about.length > 160) {
+        showStatus("editStatus", "Описание должно содержать не более 160 символов.");
+        return;
+      }
+      const saveButton = document.getElementById("saveProfileButton");
+      saveButton.disabled = true;
+      try {
+        const updated = { ...profile, display_name, username: username || profile?.username || null, about };
+        if (!demoMode) {
+          const { data, error } = await supabaseClient.from("profiles")
+            .update({ display_name, username: username || null, about })
+            .eq("id", currentUser.id)
+            .select("id, username, display_name, about, created_at")
+            .single();
+          if (error) throw error;
+          profile = data;
+        } else {
+          profile = updated;
+          saveDemo();
+        }
+        closeModal("editModal");
+        renderProfile();
+        showToast("Профиль обновлён ✨");
+      } catch (error) {
+        console.error("Не удалось сохранить профиль:", error);
+        showStatus("editStatus", error.code === "23505" ? "Это имя пользователя уже занято." : error.message);
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+
+    document.getElementById("sendGiftForm").addEventListener("submit", sendGift);
+    document.getElementById("signOutButton").addEventListener("click", async () => {
+      if (!supabaseClient || !currentUser || !isOwnProfile) return;
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        console.error("Не удалось выйти из аккаунта:", error);
+        showToast(`Не удалось выйти: ${error.message}`);
+        return;
+      }
+      location.href = "./index.html";
+    });
+    document.getElementById("recipientSearch").addEventListener("input", event => {
+      clearTimeout(searchTimer);
+      selectedRecipient = null;
+      const query = event.target.value.trim();
+      const token = ++searchToken;
+      if (!query) {
+        contacts = demoMode ? DEMO_CONTACTS : [];
+        if (demoMode) renderRecipients(contacts);
+        else document.getElementById("recipientResults").innerHTML = "";
+        return;
+      }
+      searchTimer = setTimeout(() => searchRecipients(query, token).catch(error => {
+        console.error("Ошибка поиска:", error);
+        document.getElementById("recipientResults").innerHTML = `<span class="field-help">${safeText(error.message)}</span>`;
+      }), 220);
+    });
+    document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => closeModal(button.dataset.close)));
+    document.querySelectorAll(".modal-backdrop").forEach(modal => modal.addEventListener("click", event => {
+      if (event.target === modal) closeModal(modal.id);
+    }));
+    document.addEventListener("click", event => {
+      const closeButton = event.target.closest("[data-close]");
+      if (closeButton) closeModal(closeButton.dataset.close);
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") document.querySelectorAll(".modal-backdrop.open").forEach(modal => closeModal(modal.id));
+    });
+
+    initializeProfile();
+  </script>
+</body>
+</html>
